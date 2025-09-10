@@ -270,15 +270,26 @@ class ChromeTabs extends BrowserTabs {
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
-    this._browser.tabs.executeScript(
-      tab_id, {code: script},
-      (result) => {
-        // https://stackoverflow.com/a/45603880/258421
-        let lastError = chrome.runtime.lastError;
+    // Manifest V3: use chrome.scripting.executeScript instead of tabs.executeScript
+    this._browser.scripting.executeScript(
+      {
+        target: { tabId: tab_id },
+        func: (code) => {
+          // Execute provided code string in the page context
+          // and return its result. This mirrors MV2 behavior where
+          // executeScript returned an array with a single result.
+          // eslint-disable-next-line no-eval
+          return eval(code);
+        },
+        args: [script]
+      },
+      (injectionResults) => {
+        const lastError = chrome.runtime.lastError;
         if (lastError) {
           onError(lastError, payload);
         } else {
-          onSuccess(result, payload);
+          const results = (injectionResults || []).map(r => r.result);
+          onSuccess(results, payload);
         }
       }
     );
