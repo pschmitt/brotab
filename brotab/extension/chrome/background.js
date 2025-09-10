@@ -308,6 +308,41 @@ var browserTabs = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
 reconnect();
 
+// In MV3, the service worker can be suspended when idle.
+// Use an alarm to periodically wake it and re-establish the native connection
+// without sending unsolicited messages to the native app.
+try {
+  if (typeof chrome !== 'undefined' && chrome.alarms) {
+    const KEEPALIVE_ALARM = 'bt-keepalive';
+
+    function scheduleKeepAlive() {
+      // Minimum is 1 minute; keep it modest to avoid excessive wakeups
+      chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 1 });
+    }
+
+    chrome.runtime.onInstalled.addListener(() => {
+      scheduleKeepAlive();
+      // Ensure we have a connection on install/refresh
+      if (!port) reconnect();
+    });
+
+    chrome.runtime.onStartup.addListener(() => {
+      scheduleKeepAlive();
+      // Ensure we have a connection on browser startup
+      if (!port) reconnect();
+    });
+
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm && alarm.name === KEEPALIVE_ALARM) {
+        // If there is no active port, re-connect; do not send messages
+        if (!port) reconnect();
+      }
+    });
+  }
+} catch (e) {
+  console.warn('Keepalive scheduling failed:', e);
+}
+
 function reconnect() {
   console.log("Connecting to native app");
   if (typeof browser !== 'undefined') {
