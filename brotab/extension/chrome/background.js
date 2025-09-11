@@ -302,10 +302,55 @@ class ChromeTabs extends BrowserTabs {
 
 
 console.log("Detecting browser");
-var port = undefined;
+var port = undefined;            // Native messaging port (in SW)
 var tabs = undefined;
 var browserTabs = undefined;
+var lastNativeDisconnectError = null;
 const NATIVE_APP_NAME = 'brotab_mediator';
+
+// If available, set up an offscreen document to keep a persistent
+// native messaging connection alive across cold boots and idle periods.
+async function ensureOffscreen() {
+  try {
+    if (!chrome.offscreen) {
+      return false;
+    }
+    // Chrome 109+: offscreen API available. Avoid duplicates.
+    // hasDocument() isn't available in all versions; guard accordingly.
+    let hasDoc = false;
+    try {
+      if (chrome.offscreen.hasDocument) {
+        hasDoc = await chrome.offscreen.hasDocument();
+      }
+    } catch (_) {}
+    if (!hasDoc) {
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['IFRAME_SCRIPTING'],
+        justification: 'Maintain persistent native messaging connection for BroTab control.'
+      });
+    }
+    return true;
+  } catch (e) {
+    console.warn('Failed to create offscreen document:', e);
+    return false;
+  }
+}
+
+// Keep references to keepalive ports so the SW stays alive
+const keepalivePorts = [];
+chrome.runtime.onConnect.addListener((p) => {
+  if (p && p.name === 'bt-keepalive') {
+    keepalivePorts.push(p);
+    p.onDisconnect.addListener(() => {
+      const i = keepalivePorts.indexOf(p);
+      if (i >= 0) keepalivePorts.splice(i, 1);
+    });
+    p.onMessage.addListener((_msg) => { /* no-op ping */ });
+  }
+});
+
+// Attempt initial connection path
 reconnect();
 
 // In MV3, the service worker can be suspended when idle.
@@ -349,12 +394,12 @@ function reconnect() {
     port = browser.runtime.connectNative(NATIVE_APP_NAME);
     console.log("It's Firefox: " + port);
     browserTabs = new FirefoxTabs(browser);
-
   } else if (typeof chrome !== 'undefined') {
-    port = chrome.runtime.connectNative(NATIVE_APP_NAME);
-    console.log("It's Chrome/Chromium: " + port);
     browserTabs = new ChromeTabs(chrome);
-
+    // Create offscreen doc to keep SW alive, but do native connect here
+    if (chrome.offscreen) ensureOffscreen();
+    port = chrome.runtime.connectNative(NATIVE_APP_NAME);
+    console.log("It's Chrome/Chromium (native port in SW): " + port);
   } else {
     console.log("Unknown browser detected");
   }
@@ -795,11 +840,8 @@ port.onMessage.addListener((command) => {
 
 port.onDisconnect.addListener(function() {
   console.log("Disconnected");
-  if(chrome.runtime.lastError) {
-    console.warn("Reason: " + chrome.runtime.lastError.message);
-  } else {
-    console.warn("lastError is undefined");
-  }
+  const err = (chrome.runtime.lastError && chrome.runtime.lastError.message) || lastNativeDisconnectError;
+  if (err) console.warn("Reason: " + err); else console.warn("lastError is undefined");
   //sleep(5000);
   console.log("Trying to reconnect");
   reconnect();

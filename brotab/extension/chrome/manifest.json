@@ -11,7 +11,7 @@
   "icons": {
       "128": "brotab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "activeTab", "scripting", "alarms"],
+  "permissions": ["nativeMessaging", "tabs", "activeTab", "scripting", "alarms", "offscreen"],
   "host_permissions": [
     "<all_urls>"
   ],
