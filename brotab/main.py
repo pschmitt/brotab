@@ -388,13 +388,31 @@ def install_mediator(args):
          '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/brotab_mediator.json'),
     ]
 
+    # Filter by requested browser; default is chrome to avoid touching Firefox
+    # on systems where its path may be read-only (e.g., NixOS managed setups).
+    browser_token = None
+    if getattr(args, 'browser', None) and args.browser != 'all':
+        browser_map = {
+            'firefox': 'mozilla',
+            'chromium': 'chromium',
+            'chrome': 'google-chrome',
+            'brave': 'Brave-Browser',
+        }
+        browser_token = browser_map.get(args.browser)
+        native_app_manifests = [
+            (src, dst) for (src, dst) in native_app_manifests if browser_token in dst
+        ]
+
     if args.tests:
-        native_app_manifests.append(
+        tests_targets = [
             ('mediator/chromium_mediator_tests.json',
-             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'))
-        native_app_manifests.append(
+             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
             ('mediator/chromium_mediator_tests.json',
-             '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'))
+             '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+        ]
+        if browser_token:
+            tests_targets = [(s, d) for (s, d) in tests_targets if browser_token in d]
+        native_app_manifests.extend(tests_targets)
 
     from pkg_resources import resource_string
     for filename, destination in native_app_manifests:
@@ -768,6 +786,11 @@ def parse_args(args):
         help='''
         configure browser settings to use bt mediator (native messaging app)
         ''')
+    parser_install_mediator.add_argument(
+        '--browser', choices=['all', 'chrome', 'chromium', 'firefox', 'brave'],
+        default='chrome',
+        help='Install mediator only for the specified browser (default: chrome)'
+    )
     parser_install_mediator.add_argument('--tests', action='store_true',
                                          default=False,
                                          help='install testing version of '
