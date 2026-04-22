@@ -148,8 +148,19 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
-  close(tab_ids, onSuccess) {
+  close(tab_ids, onSuccess, onError) {
     this._browser.tabs.remove(tab_ids, onSuccess);
+  }
+
+  closeWindow(windowId, onSuccess, onError) {
+    this._browser.windows.remove(windowId, () => {
+      const lastError = this._browser.runtime.lastError;
+      if (lastError) {
+        onError(lastError.message);
+      } else {
+        onSuccess();
+      }
+    });
   }
 
   move(tabId, moveOptions, onSuccess) {
@@ -206,15 +217,15 @@ reconnect();
 
 function reconnect() {
   console.log("Connecting to native app");
-  if (typeof browser !== 'undefined') {
-    port = browser.runtime.connectNative(NATIVE_APP_NAME);
-    console.log("It's Firefox: " + port);
-    browserTabs = new FirefoxTabs(browser);
-
-  } else if (typeof chrome !== 'undefined') {
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.tabs) {
     port = chrome.runtime.connectNative(NATIVE_APP_NAME);
     console.log("It's Chrome/Chromium: " + port);
     browserTabs = new ChromeTabs(chrome);
+
+  } else if (typeof browser !== 'undefined' && browser.runtime && browser.tabs) {
+    port = browser.runtime.connectNative(NATIVE_APP_NAME);
+    console.log("It's Firefox: " + port);
+    browserTabs = new FirefoxTabs(browser);
 
   } else {
     console.log("Unknown browser detected");
@@ -332,7 +343,67 @@ function moveTabs(move_triplets) {
 }
 
 function closeTabs(tab_ids) {
-  browserTabs.close(tab_ids, () => port.postMessage('OK'));
+  browserTabs.list({}, tabs => {
+    const requestedTabIds = new Set(tab_ids);
+    const tabsByWindowId = new Map();
+    const closeWindowIds = [];
+    const closeTabIds = [];
+
+    for (let tab of tabs) {
+      if (!tabsByWindowId.has(tab.windowId)) {
+        tabsByWindowId.set(tab.windowId, []);
+      }
+      tabsByWindowId.get(tab.windowId).push(tab);
+    }
+
+    for (let [_windowId, windowTabs] of tabsByWindowId.entries()) {
+      const matchingTabs = windowTabs.filter(tab => requestedTabIds.has(tab.id));
+      if (matchingTabs.length === 0) {
+        continue;
+      }
+
+      if (matchingTabs.length === windowTabs.length) {
+        closeWindowIds.push(windowTabs[0].windowId);
+      } else {
+        closeTabIds.push(...matchingTabs.map(tab => tab.id));
+      }
+    }
+
+    const operations = [];
+    if (closeTabIds.length > 0) {
+      operations.push(new Promise(resolve => {
+        browserTabs.close(
+          closeTabIds,
+          () => {
+            const lastError = chrome.runtime.lastError;
+            if (lastError) {
+              console.error(`Error removing tabs ${JSON.stringify(closeTabIds)}: ${lastError.message}`);
+            }
+            resolve();
+          },
+          error => {
+            console.error(`Error removing tabs ${JSON.stringify(closeTabIds)}: ${error}`);
+            resolve();
+          }
+        );
+      }));
+    }
+
+    for (let windowId of closeWindowIds) {
+      operations.push(new Promise(resolve => {
+        browserTabs.closeWindow(
+          windowId,
+          () => resolve(),
+          error => {
+            console.error(`Error removing window ${windowId}: ${error}`);
+            resolve();
+          }
+        );
+      }));
+    }
+
+    Promise.all(operations).then(() => port.postMessage('OK'));
+  });
 }
 
 function openUrls(urls, window_id) {

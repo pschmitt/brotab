@@ -9,7 +9,7 @@
   "icons": {
       "128": "brotab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"],
+  "permissions": ["nativeMessaging", "tabs", "windows", "activeTab", "<all_urls>"],
   "applications": {
     "gecko": {
       "id": "brotab_mediator@example.org",

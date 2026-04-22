@@ -74,10 +74,20 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  close(tab_ids, onSuccess) {
+  close(tab_ids, onSuccess, onError) {
     this._browser.tabs.remove(tab_ids).then(
       onSuccess,
-      (error) => console.log(`Error removing tab: ${error}`)
+      (error) => {
+        console.log(`Error removing tab: ${error}`);
+        onError(error);
+      }
+    );
+  }
+
+  closeWindow(windowId, onSuccess, onError) {
+    this._browser.windows.remove(windowId).then(
+      onSuccess,
+      (error) => onError(error)
     );
   }
 
@@ -332,7 +342,61 @@ function moveTabs(move_triplets) {
 }
 
 function closeTabs(tab_ids) {
-  browserTabs.close(tab_ids, () => port.postMessage('OK'));
+  browserTabs.list({}, tabs => {
+    const requestedTabIds = new Set(tab_ids);
+    const tabsByWindowId = new Map();
+    const closeWindowIds = [];
+    const closeTabIds = [];
+
+    for (let tab of tabs) {
+      if (!tabsByWindowId.has(tab.windowId)) {
+        tabsByWindowId.set(tab.windowId, []);
+      }
+      tabsByWindowId.get(tab.windowId).push(tab);
+    }
+
+    for (let [_windowId, windowTabs] of tabsByWindowId.entries()) {
+      const matchingTabs = windowTabs.filter(tab => requestedTabIds.has(tab.id));
+      if (matchingTabs.length === 0) {
+        continue;
+      }
+
+      if (matchingTabs.length === windowTabs.length) {
+        closeWindowIds.push(windowTabs[0].windowId);
+      } else {
+        closeTabIds.push(...matchingTabs.map(tab => tab.id));
+      }
+    }
+
+    const operations = [];
+    if (closeTabIds.length > 0) {
+      operations.push(new Promise(resolve => {
+        browserTabs.close(
+          closeTabIds,
+          () => resolve(),
+          error => {
+            console.error(`Error removing tabs ${JSON.stringify(closeTabIds)}: ${error}`);
+            resolve();
+          }
+        );
+      }));
+    }
+
+    for (let windowId of closeWindowIds) {
+      operations.push(new Promise(resolve => {
+        browserTabs.closeWindow(
+          windowId,
+          () => resolve(),
+          error => {
+            console.error(`Error removing window ${windowId}: ${error}`);
+            resolve();
+          }
+        );
+      }));
+    }
+
+    Promise.all(operations).then(() => port.postMessage('OK'));
+  });
 }
 
 function openUrls(urls, window_id) {
