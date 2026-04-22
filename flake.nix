@@ -47,10 +47,30 @@
 
               jq --arg out "$out" '.path = "\($out)/bin/bruvtab_mediator"' \
                 bruvtab/mediator/firefox_mediator.json \
+                > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
+
+              jq --arg out "$out" '
+                .name = "brotab_mediator"
+                | .path = "\($out)/bin/bruvtab_mediator"
+                | .allowed_extensions = ["brotab_mediator@example.org"]
+              ' \
+                bruvtab/mediator/firefox_mediator.json \
                 > $out/lib/mozilla/native-messaging-hosts/brotab_mediator.json
 
               jq --arg out "$out" --arg ext "knldjmfmopnpolahpmmgbagdohdnhkik" '
                 .path = "\($out)/bin/bruvtab_mediator"
+                | .allowed_origins = (
+                    (.allowed_origins // [])
+                    + ["chrome-extension://\($ext)/"]
+                  | unique)
+              ' \
+                bruvtab/mediator/chromium_mediator.json \
+                > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
+
+              jq --arg out "$out" --arg ext "knldjmfmopnpolahpmmgbagdohdnhkik" '
+                .name = "brotab_mediator"
+                | .path = "\($out)/bin/bruvtab_mediator"
+                | .allowed_extensions = ["brotab_mediator@example.org"]
                 | .allowed_origins = (
                     (.allowed_origins // [])
                     + ["chrome-extension://\($ext)/"]

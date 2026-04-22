@@ -12,7 +12,7 @@
   "permissions": ["nativeMessaging", "tabs", "windows", "activeTab", "<all_urls>"],
   "applications": {
     "gecko": {
-      "id": "brotab_mediator@example.org",
+      "id": "bruvtab_mediator@example.org",
       "strict_min_version": "50.0"
     }
   }

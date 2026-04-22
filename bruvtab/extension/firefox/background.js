@@ -1,5 +1,5 @@
 /*
-On startup, connect to the "brotab_mediator" app.
+On startup, connect to the "bruvtab_mediator" app.
 */
 
 //const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
@@ -211,7 +211,7 @@ console.log("Detecting browser");
 var port = undefined;
 var tabs = undefined;
 var browserTabs = undefined;
-const NATIVE_APP_NAME = 'brotab_mediator';
+const NATIVE_APP_NAME = 'bruvtab_mediator';
 reconnect();
 
 function reconnect() {

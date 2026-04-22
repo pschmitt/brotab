@@ -381,19 +381,19 @@ def show_clients(args):
 
 def install_mediator(args):
     bruvtab_logger.info('Installing mediators')
-    mediator_path = which('bruvtab_mediator') or which('bruvtab_mediator')
+    mediator_path = which('bruvtab_mediator')
     if is_windows():
         mediator_path = make_windows_path_double_sep(mediator_path)
 
     native_app_manifests = [
         ('mediator/firefox_mediator.json',
-         '~/.mozilla/native-messaging-hosts/brotab_mediator.json'),
+         '~/.mozilla/native-messaging-hosts/bruvtab_mediator.json'),
         ('mediator/chromium_mediator.json',
-         '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+         '~/.config/chromium/NativeMessagingHosts/bruvtab_mediator.json'),
         ('mediator/chromium_mediator.json',
-         '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+         '~/.config/google-chrome/NativeMessagingHosts/bruvtab_mediator.json'),
         ('mediator/chromium_mediator.json',
-         '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/brotab_mediator.json'),
+         '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/bruvtab_mediator.json'),
     ]
 
     # Filter by requested browser; default is chrome to avoid touching Firefox
@@ -414,9 +414,9 @@ def install_mediator(args):
     if args.tests:
         tests_targets = [
             ('mediator/chromium_mediator_tests.json',
-             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+             '~/.config/chromium/NativeMessagingHosts/bruvtab_mediator.json'),
             ('mediator/chromium_mediator_tests.json',
-             '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+             '~/.config/google-chrome/NativeMessagingHosts/bruvtab_mediator.json'),
         ]
         if browser_token:
             tests_targets = [(s, d) for (s, d) in tests_targets if browser_token in d]
@@ -426,13 +426,21 @@ def install_mediator(args):
     for filename, destination in native_app_manifests:
         destination = os.path.expanduser(os.path.expandvars(destination))
         template = resource_string(__name__, filename).decode('utf8')
-        manifest = template.replace(r'$PWD/brotab_mediator.py', mediator_path)
+        manifest = template.replace(r'$PWD/bruvtab_mediator.py', mediator_path)
         bruvtab_logger.info('Installing template %s into %s', filename, destination)
         print('Installing mediator manifest %s' % destination)
 
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         with open(destination, 'w') as file_:
             file_.write(manifest)
+
+        compat_destination = destination.replace('bruvtab_mediator.json', 'brotab_mediator.json')
+        if compat_destination != destination:
+            compat_manifest = manifest.replace('bruvtab_mediator', 'brotab_mediator')
+            compat_manifest = compat_manifest.replace('bruvtab_mediator@example.org',
+                                                      'brotab_mediator@example.org')
+            with open(compat_destination, 'w') as file_:
+                file_.write(compat_manifest)
 
         if is_windows() and 'mozilla' in destination:
             register_native_manifest_windows_firefox(destination)

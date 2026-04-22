@@ -1,7 +1,7 @@
 
-TARGET_FIREFOX=~/.mozilla/native-messaging-hosts/brotab_mediator.json
-TARGET_CHROMIUM=~/.config/chromium/NativeMessagingHosts/brotab_mediator.json
-TARGET_CHROME=~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json
+TARGET_FIREFOX=~/.mozilla/native-messaging-hosts/bruvtab_mediator.json
+TARGET_CHROMIUM=~/.config/chromium/NativeMessagingHosts/bruvtab_mediator.json
+TARGET_CHROME=~/.config/google-chrome/NativeMessagingHosts/bruvtab_mediator.json
 
 install_firefox:
 	mkdir -p $(dir $(TARGET_FIREFOX))
