@@ -434,14 +434,6 @@ def install_mediator(args):
         with open(destination, 'w') as file_:
             file_.write(manifest)
 
-        compat_destination = destination.replace('bruvtab_mediator.json', 'brotab_mediator.json')
-        if compat_destination != destination:
-            compat_manifest = manifest.replace('bruvtab_mediator', 'brotab_mediator')
-            compat_manifest = compat_manifest.replace('bruvtab_mediator@example.org',
-                                                      'brotab_mediator@example.org')
-            with open(compat_destination, 'w') as file_:
-                file_.write(compat_manifest)
-
         if is_windows() and 'mozilla' in destination:
             register_native_manifest_windows_firefox(destination)
         if is_windows() and 'chrome' in destination:
