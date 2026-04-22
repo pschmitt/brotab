@@ -75,6 +75,24 @@
             cp -R ${self}/bruvtab/extension/chrome/. $out/
           '';
 
+          firefoxAddon =
+            pkgs.runCommand "bruvtab-firefox-addon-2.0.0"
+              {
+                nativeBuildInputs = [ pkgs.zip ];
+                passthru = {
+                  extid = "bruvtab_mediator@example.org";
+                };
+              }
+              ''
+                mkdir -p $out/share/bruvtab-firefox-addon
+                cp -R ${self}/bruvtab/extension/firefox/. $out/share/bruvtab-firefox-addon/
+
+                (
+                  cd $out/share/bruvtab-firefox-addon
+                  zip -qr "$out/bruvtab_mediator@example.org.xpi" .
+                )
+              '';
+
           firefoxExtension = pkgs.runCommand "bruvtab-firefox-extension-2.0.0" { } ''
             mkdir -p $out
             cp -R ${self}/bruvtab/extension/firefox/. $out/
@@ -84,6 +102,7 @@
           default = bruvtab;
           bruvtab = bruvtab;
           chromeExtension = chromeExtension;
+          firefoxAddon = firefoxAddon;
           firefoxExtension = firefoxExtension;
         });
 
