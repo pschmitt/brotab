@@ -80,17 +80,24 @@
               {
                 nativeBuildInputs = [ pkgs.zip ];
                 passthru = {
+                  addonId = "bruvtab_mediator@example.org";
                   extid = "bruvtab_mediator@example.org";
                 };
               }
               ''
+                addon_id='bruvtab_mediator@example.org'
+
                 mkdir -p $out/share/bruvtab-firefox-addon
+                mkdir -p "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
                 cp -R ${self}/bruvtab/extension/firefox/. $out/share/bruvtab-firefox-addon/
 
                 (
                   cd $out/share/bruvtab-firefox-addon
-                  zip -qr "$out/bruvtab_mediator@example.org.xpi" .
+                  zip -qr "$out/$addon_id.xpi" .
                 )
+
+                ln -s "$out/$addon_id.xpi" \
+                  "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$addon_id.xpi"
               '';
 
           firefoxExtension = pkgs.runCommand "bruvtab-firefox-extension-2.0.0" { } ''
