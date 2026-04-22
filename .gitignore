@@ -5,9 +5,9 @@ __pycache__
 ignore
 dist
 build
-brotab.egg-info
+bruvtab.egg-info
 target
-brotab/node_modules
+bruvtab/node_modules
 
 node_modules
 tags

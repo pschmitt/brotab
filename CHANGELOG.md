@@ -1,16 +1,16 @@
 2.0.0 (2025-01-22)
 
 * manifest v3 support for Google Chrome extension
-* json output for "bt list" command
+* json output for "bruvtab list" command
 
 1.5.0 (2025-01-22)
 
-* Added "bt screenshot" command
+* Added "bruvtab screenshot" command
 * Fixed some dependencies in requirements/base.txt
 
 1.4.2 (2022-05-29)
 
-* Support config file in `$XDG_CONFIG_HOME/brotab/brotab.env`:
+* Support config file in `$XDG_CONFIG_HOME/bruvtab/bruvtab.env`:
 ```env
 HTTP_IFACE=0.0.0.0
 MIN_HTTP_PORT=4625 
@@ -21,19 +21,19 @@ MAX_HTTP_PORT=4635
 1.4.1 (2022-05-29)
 
 * Better syntax for navigate and update:
-  > bt navigate b.1.862 "https://google.com"
-  > bt update -tabId b.1.862 -url="http://www.google.com" 
+  > bruvtab navigate b.1.862 "https://google.com"
+  > bruvtab update -tabId b.1.862 -url="http://www.google.com" 
 
 1.4.0 (2022-05-29)
 
-* Added "bt navigate" and "bt update" commands
+* Added "bruvtab navigate" and "bruvtab update" commands
 
-* Fix "bt open" and "bt new": now they print tab IDs of the created tabs, one
+* Fix "bruvtab open" and "bruvtab new": now they print tab IDs of the created tabs, one
   per line
 
 1.3.0 (2020-06-02)
 
-* Added "bt html" command #31, #34
+* Added "bruvtab html" command #31, #34
 
 1.2.2 (2020-05-05)
 
@@ -51,10 +51,10 @@ MAX_HTTP_PORT=4635
 * add "--focused" argument to "activate" tab command. This will bring browser
   into focus
 * automatically register native app manifest in the Windows Registry when doing
-  "bt install" (Windows only)
+  "bruvtab install" (Windows only)
 * detect user's temporary directory (Windows-related fix)
-* use "notepad" editor for "bt move" command on Windows
-* add optional tab_ids filter to "bt text [tab_id]" command
+* use "notepad" editor for "bruvtab move" command on Windows
+* add optional tab_ids filter to "bruvtab text [tab_id]" command
 
 1.1.0 (2019-12-15)
 
@@ -65,7 +65,7 @@ MAX_HTTP_PORT=4635
 * print all active tabs from all windows (#8)
 * autorotate mediator logs to make sure it doesn't grow too large
 * make sure mediator (flask) works in single-threaded mode
-* bt words, bt text, bt index now support customization of regexpes
+* bruvtab words, bruvtab text, bruvtab index now support customization of regexpes
   that are used to match words, split text and replacement/join strings
 
 0.0.5 (2019-10-27)

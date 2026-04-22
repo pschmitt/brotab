@@ -29,8 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 #RUN easy_install pip
 #RUN pip3 install flask httpie
-# RUN pip3 install -r /brotab/requirements.txt
-#RUN cd /brotab && pip3 install -e .
+# RUN pip3 install -r /bruvtab/requirements.txt
+#RUN cd /bruvtab && pip3 install -e .
 
 #ADD xvfb-chromium /usr/bin/xvfb-chromium
 
@@ -38,50 +38,50 @@ ADD deb/google-chrome-stable_current_amd64.deb /tmp/chrome.deb
 RUN echo "Installing chrome" && dpkg -i /tmp/chrome.deb
 
 #RUN adduser --disabled-password --gecos '' user
-WORKDIR /brotab
+WORKDIR /bruvtab
 
 # Build:
-# docker build -t brotab-integration -f Dockerfile.integration .
+# docker build -t bruvtab-integration -f Dockerfile.integration .
 # Run:
 # xhost +local:docker
 #
-# docker run --rm --privileged -v "$(pwd):/brotab" -p 10222:9222 -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /dev:/dev -v /run:/run -v /etc/machine-id:/etc/machine-id --ipc=host --device /dev/dri --group-add video brotab-integration
-# docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix brotab
+# docker run --rm --privileged -v "$(pwd):/bruvtab" -p 10222:9222 -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /dev:/dev -v /run:/run -v /etc/machine-id:/etc/machine-id --ipc=host --device /dev/dri --group-add video bruvtab-integration
+# docker run -it --rm -v "$(pwd):/bruvtab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix bruvtab
 
 RUN /bin/bash
 #RUN /usr/bin/google-chrome --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0
 
 
 
-# xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
+# xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
 # curl localhost:9222/json/list
 # python3 -m http.server
 
-# cd /brotab && pip3 install -e . && cd /brotab/brotab/firefox_mediator && make install
-# chromium-browser --headless --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
-# cat ~/.config/chromium/NativeMessagingHosts/brotab_mediator.json
-# py.test brotab/tests/test_integration.py -s
+# cd /bruvtab && pip3 install -e . && cd /bruvtab/bruvtab/firefox_mediator && make install
+# chromium-browser --headless --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
+# cat ~/.config/chromium/NativeMessagingHosts/bruvtab_mediator.json
+# py.test bruvtab/tests/test_integration.py -s
 
 # How to run integration tests:
 # pip3 install -e .
-# bt install --tests
-# py.test brotab/tests/test_integration.py -s
-# py.test brotab/tests/test_integration.py -k test_active_tabs -s
+# bruvtab install --tests
+# py.test bruvtab/tests/test_integration.py -s
+# py.test bruvtab/tests/test_integration.py -k test_active_tabs -s
 # pkill python3; pkill xvfb-run; pkill node; pkill Xvfb; pkill firefox
 
-# docker run -it --rm -v "$(pwd):/brotab" -p 127.0.0.1:10222:9222 brotab
-# docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 brotab
+# docker run -it --rm -v "$(pwd):/bruvtab" -p 127.0.0.1:10222:9222 bruvtab
+# docker run -it --rm -v "$(pwd):/bruvtab" -p 10222:9222 bruvtab
 
 # run this on host to be able to view chromimum GUI:
 # xhost local:docker
 # xhost local:root
 
 # docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix firefox
-# docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix brotab
-# xvfb-run chromium-browser --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
-# xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --load-extension=/brotab/brotab/extension/chrome
+# docker run -it --rm -v "$(pwd):/bruvtab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix bruvtab
+# xvfb-run chromium-browser --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
+# xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --load-extension=/bruvtab/bruvtab/extension/chrome
 
-# cd /brotab/brotab/firefox_extension
+# cd /bruvtab/bruvtab/firefox_extension
 # web-ext run
 
 # test list tabs:
@@ -135,8 +135,8 @@ RUN /bin/bash
 #
 #   RUN easy_install pip
 #   RUN pip3 install flask httpie
-#   # RUN pip3 install -r /brotab/requirements.txt
-#   #RUN cd /brotab && pip3 install -e .
+#   # RUN pip3 install -r /bruvtab/requirements.txt
+#   #RUN cd /bruvtab && pip3 install -e .
 #
 #   ADD xvfb-chromium /usr/bin/xvfb-chromium
 #   # RUN ln -s /usr/bin/xvfb-chromium /usr/bin/google-chrome
@@ -146,37 +146,37 @@ RUN /bin/bash
 #   RUN adduser --disabled-password --gecos '' user
 #   # USER user
 #   #WORKDIR /home/user
-#   WORKDIR /brotab
+#   WORKDIR /bruvtab
 #
-#   # xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
+#   # xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
 #   # curl localhost:9222/json/list
 #   # python3 -m http.server
 #
-#   # cd /brotab && pip3 install -e . && cd /brotab/brotab/firefox_mediator && make install
-#   # chromium-browser --headless --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
-#   # cat ~/.config/chromium/NativeMessagingHosts/brotab_mediator.json
-#   # py.test brotab/tests/test_integration.py -s
+#   # cd /bruvtab && pip3 install -e . && cd /bruvtab/bruvtab/firefox_mediator && make install
+#   # chromium-browser --headless --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
+#   # cat ~/.config/chromium/NativeMessagingHosts/bruvtab_mediator.json
+#   # py.test bruvtab/tests/test_integration.py -s
 #
 #   # How to run integration tests:
 #   # pip3 install -e .
-#   # bt install --tests
-#   # py.test brotab/tests/test_integration.py -s
-#   # py.test brotab/tests/test_integration.py -k test_active_tabs -s
+#   # bruvtab install --tests
+#   # py.test bruvtab/tests/test_integration.py -s
+#   # py.test bruvtab/tests/test_integration.py -k test_active_tabs -s
 #   # pkill python3; pkill xvfb-run; pkill node; pkill Xvfb; pkill firefox
 #
-#   # docker run -it --rm -v "$(pwd):/brotab" -p 127.0.0.1:10222:9222 brotab
-#   # docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 brotab
+#   # docker run -it --rm -v "$(pwd):/bruvtab" -p 127.0.0.1:10222:9222 bruvtab
+#   # docker run -it --rm -v "$(pwd):/bruvtab" -p 10222:9222 bruvtab
 #
 #   # run this on host to be able to view chromimum GUI:
 #   # xhost local:docker
 #   # xhost local:root
 #
 #   # docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix firefox
-#   # docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix brotab
-#   # xvfb-run chromium-browser --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
-#   # xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --load-extension=/brotab/brotab/extension/chrome
+#   # docker run -it --rm -v "$(pwd):/bruvtab" -p 10222:9222 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix bruvtab
+#   # xvfb-run chromium-browser --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/bruvtab/bruvtab/firefox_extension
+#   # xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --load-extension=/bruvtab/bruvtab/extension/chrome
 #
-#   # cd /brotab/brotab/firefox_extension
+#   # cd /bruvtab/bruvtab/firefox_extension
 #   # web-ext run
 #
 #   # test list tabs:

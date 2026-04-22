@@ -34,4 +34,4 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pytest brotab -s -vvv --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html --ignore brotab/albert --ignore brotab/tests/integration
+          pytest bruvtab -s -vvv --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html --ignore bruvtab/albert --ignore bruvtab/tests/integration

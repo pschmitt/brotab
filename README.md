@@ -1,9 +1,9 @@
-# BroTab
+# BruvTab
 
-![GitHub](https://img.shields.io/github/license/balta2ar/brotab)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/balta2ar/brotab)
-[![PyPI version](https://badge.fury.io/py/brotab.svg)](https://badge.fury.io/py/brotab)
-![Mozilla Add-on](https://img.shields.io/amo/v/brotab)
+![GitHub](https://img.shields.io/github/license/balta2ar/bruvtab)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/balta2ar/bruvtab)
+[![PyPI version](https://badge.fury.io/py/bruvtab.svg)](https://badge.fury.io/py/bruvtab)
+![Mozilla Add-on](https://img.shields.io/amo/v/bruvtab)
 ![Chrome Web Store](https://img.shields.io/chrome-web-store/v/mhpeahbikehnfkfnmopaigggliclhmnc)
 
 Control your browser's tabs from the terminal.
@@ -12,9 +12,9 @@ Control your browser's tabs from the terminal.
 
 ```txt
 No command has been specified
-usage: bt [-h] {move,list,close,activate,search,open,words,text,html,dup,windows,clients} ...
+usage: bruvtab [-h] {move,list,close,activate,search,open,words,text,html,dup,windows,clients} ...
 
-bt (brotab = Browser Tabs) is a command-line tool that helps you manage browser tabs. It can
+bruvtab (bruvtab = Browser Tabs) is a command-line tool that helps you manage browser tabs. It can
 help you list, close, reorder, open and activate your tabs.
 
 positional arguments:
@@ -45,7 +45,7 @@ positional arguments:
                         window of the specifed client
     navigate            navigate to URLs. There are two ways to specify tab ids and
                         URLs: 1. stdin: lines with pairs of "tab_id<tab>url" 2.
-                        arguments: bt navigate <tab_id> "<url>", e.g. bt navigate b.20.1
+                        arguments: bruvtab navigate <tab_id> "<url>", e.g. bruvtab navigate b.20.1
                         "https://google.com" stdin has the priority.
     update              Update tabs state, e.g. URL. There are two ways to specify
                         updates: 1. stdin, pass JSON of the form: [{"tab_id":
@@ -54,8 +54,8 @@ positional arguments:
                         https://developer.mozilla.org/en-US/docs/Mozilla/Add-
                         ons/WebExtensions/API/tabs/update Example: echo
                         '[{"tab_id":"a.2118.2156",
-                        "properties":{"url":"https://google.com"}}]' | bt update 2.
-                        arguments, e.g.: bt update -tabId b.1.862
+                        "properties":{"url":"https://google.com"}}]' | bruvtab update 2.
+                        arguments, e.g.: bruvtab update -tabId b.1.862
                         -url="http://www.google.com" +muted
     words               show sorted unique words from all active tabs of all
                         clients. This is a helper for webcomplete deoplete plugin
@@ -69,7 +69,7 @@ positional arguments:
     clients             display available browser clients (mediators), their
                         prefixes and address (host:port), native app PIDs, and
                         browser names
-    install             configure browser settings to use bt mediator (native
+    install             configure browser settings to use bruvtab mediator (native
                         messaging app)
 
 optional arguments:
@@ -106,15 +106,15 @@ Features to show:
 
 1. Install command-line client:
 ```
-$ pipx install brotab        # preferred method, if pipx not installed: $ sudo apt install pipx
-$ uv tool install brotab     # alternative
-$ pip install --user brotab  # alternative
-$ sudo pip install brotab    # alternative
+$ pipx install bruvtab        # preferred method, if pipx not installed: $ sudo apt install pipx
+$ uv tool install bruvtab     # alternative
+$ pip install --user bruvtab  # alternative
+$ sudo pip install bruvtab    # alternative
 ```
-2. Install native app manifests: `bt install`
-3. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/
-4. Install Chrome (Chromium) / Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/
-5. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
+2. Install native app manifests: `bruvtab install`
+3. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/bruvtab/
+4. Install Chrome (Chromium) / Brave extension: https://chrome.google.com/webstore/detail/bruvtab/mhpeahbikehnfkfnmopaigggliclhmnc/
+5. Enjoy! (try `bruvtab clients`, `bruvtab windows`, `bruvtab list`, `bruvtab words`)
 
 ## Build, test and manual installation
 
@@ -123,9 +123,9 @@ see [DEVELOPMENT.md](DEVELOPMENT.md)
 ## Related projects
 
 * [TabFS](https://github.com/osnr/TabFS) -- mounts tabs info a filesystem using FUSE
-* [dudetab](https://github.com/CRImier/dudetab) -- collection of useful scripts on top of brotab
-* [ulauncher-brotab](https://github.com/brpaz/ulauncher-brotab) -- Ulauncher extension for brotab
-* [cmp-brotab](https://github.com/pschmitt/cmp-brotab) -- brotab completion for nvim-cmp
+* [dudetab](https://github.com/CRImier/dudetab) -- collection of useful scripts on top of bruvtab
+* [ulauncher-bruvtab](https://github.com/brpaz/ulauncher-bruvtab) -- Ulauncher extension for bruvtab
+* [cmp-bruvtab](https://github.com/pschmitt/cmp-bruvtab) -- bruvtab completion for nvim-cmp
 * [tab-search](https://github.com/reblws/tab-search) -- shows a nice icon with a number of tabs (Firefox)
 * [tab_wrangler](https://github.com/doctorcolossus/tab_wrangler) -- a text-based tab browser for tabaholics
 * [vimium-c](https://github.com/gdh1995/vimium-c) -- switch between tabs/history, close tabs with shift-del

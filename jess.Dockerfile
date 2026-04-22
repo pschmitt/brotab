@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 # Add chromium user
 # RUN groupadd -r chromium && useradd -m -r -g chromium -G audio,video chromium \
 #     && mkdir -p /home/chromium/Downloads && chown -R chromium:chromium /home/chromium \
-#     && mkdir /brotab && chown -R chromium:chromium /brotab
+#     && mkdir /bruvtab && chown -R chromium:chromium /bruvtab
 # # Run as non privileged user
 # USER chromium
 
@@ -34,7 +34,7 @@ COPY requirements/base.txt /tmp/base.txt
 RUN pip3 install -r /tmp/base.txt
 
 COPY startup.sh /bin/startup.sh
-WORKDIR /brotab
+WORKDIR /bruvtab
 ENTRYPOINT [ "/bin/startup.sh" ]
 #ENTRYPOINT [ "/bin/bash" ]
 # ENTRYPOINT [ "/usr/bin/chromium" ]

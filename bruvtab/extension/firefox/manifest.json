@@ -1,0 +1,19 @@
+{
+  "description": "Control your browser's tabs from command line",
+  "manifest_version": 2,
+  "name": "BruvTab",
+  "version": "2.0.0",
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "icons": {
+      "128": "bruvtab-icon-128x128.png"
+  },
+  "permissions": ["nativeMessaging", "tabs", "windows", "activeTab", "<all_urls>"],
+  "applications": {
+    "gecko": {
+      "id": "brotab_mediator@example.org",
+      "strict_min_version": "50.0"
+    }
+  }
+}

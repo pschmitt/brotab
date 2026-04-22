@@ -137,7 +137,7 @@ fn bt_clients() {
 }
 
 fn main() {
-    let matches = App::new("BroTab Browser Tab management")
+    let matches = App::new("BruvTab Browser Tab management")
         .version("0.1.0")
         .author("Yuri Bochkarev <baltazar.bz@gmail.com>")
         .about("Helps you win at browser tab management")
@@ -176,7 +176,7 @@ fn main() {
     //         }
     //     }
     //     _ => {
-    //         println!("Not enough arguments: bt <command>");
+    //         println!("Not enough arguments: bruvtab <command>");
     //         return;
     //     }
     // }

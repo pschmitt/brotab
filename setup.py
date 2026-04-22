@@ -16,11 +16,11 @@ from setuptools import find_packages, setup, Command
 # import fastentrypoints
 
 # Package meta-data.
-NAME = 'brotab'
+NAME = 'bruvtab'
 DESCRIPTION = "Control your browser's tabs from the command line"
-URL = 'https://github.com/balta2ar/brotab'
-EMAIL = 'baltazar.bz@gmail.com'
-AUTHOR = 'Yuri Bochkarev'
+URL = 'https://github.com/pschmitt/bruvtab'
+EMAIL = 'philipp@schmitt.co'
+AUTHOR = 'Philipp Schmitt'
 
 
 # What packages are required for this module to be executed?
@@ -96,15 +96,15 @@ class UploadCommand(Command):
 
 
 packages = find_packages(
-    # where='brotab',
-    # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+    # where='bruvtab',
+    # exclude=('bruvtab.tests', 'firefox_extension', 'firefox_mediator')
     #exclude=('tests', 'firefox_extension', 'firefox_mediator')
     include=(
-        'brotab',
-        'brotab.tests',
-        'brotab.search',
-        'brotab.mediator',
-        'brotab.albert',
+        'bruvtab',
+        'bruvtab.tests',
+        'bruvtab.search',
+        'bruvtab.mediator',
+        'bruvtab.albert',
     ),
     exclude=('firefox_extension', 'firefox_mediator')
 )
@@ -123,14 +123,14 @@ setup(
     url=URL,
     packages=packages,
     # packages=find_packages(
-    #     where='brotab',
-    #     # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+    #     where='bruvtab',
+    #     # exclude=('bruvtab.tests', 'firefox_extension', 'firefox_mediator')
     #     exclude=('tests', 'firefox_extension', 'firefox_mediator')
     # ),
     data_files=[
-        ('config', ['brotab/mediator/chromium_mediator.json',
-                    'brotab/mediator/firefox_mediator.json',
-                    'brotab/albert/Brotab.qss',
+        ('config', ['bruvtab/mediator/chromium_mediator.json',
+                    'bruvtab/mediator/firefox_mediator.json',
+                    'bruvtab/albert/Bruvtab.qss',
                    ]),
     ],
     # If your package is a single module, use this instead of 'packages':
@@ -138,9 +138,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'brotab=brotab.main:main',
-            'bt=brotab.main:main',
-            'bt_mediator=brotab.mediator.brotab_mediator:main',
+            'bruvtab=bruvtab.main:main',
+            'bruvtab_mediator=bruvtab.mediator.bruvtab_mediator:main',
         ],
     },
     install_requires=REQUIRED,
