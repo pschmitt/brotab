@@ -14,6 +14,23 @@
       firefoxAddonId = "bruvtab_mediator@example.org";
       firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
       lib = nixpkgs.lib;
+      projectSource = lib.cleanSourceWith {
+        src = self;
+        filter =
+          path: type:
+          let
+            base = baseNameOf path;
+          in
+          !(builtins.elem base [
+            ".git"
+            ".pytest_cache"
+            ".venv"
+            "bruvtab.egg-info"
+            "build"
+            "dist"
+          ])
+          && !(lib.hasSuffix ".pem" base);
+      };
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -38,7 +55,7 @@
             pname = "bruvtab";
             inherit version;
             format = "pyproject";
-            src = self;
+            src = projectSource;
 
             nativeBuildInputs = with py; [
               pkgs.jq
@@ -170,6 +187,7 @@
             packages = [
               pkgs.docker
               pkgs.git
+              pkgs.go-crx3
               pkgs.jq
               pkgs.just
               pkgs.nodejs

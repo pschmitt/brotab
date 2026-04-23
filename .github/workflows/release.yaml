@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
       - name: Install release tooling
         run: |
           python -m pip install --upgrade pip
@@ -72,14 +75,10 @@ jobs:
       - name: Package browser artifacts
         run: ./scripts/package-browser-artifacts.sh --version "${VERSION}"
 
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
-
       - name: Build Chrome CRX
         shell: bash
         env:
           CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
-          CHROME_EXTRA_ARGS: --no-sandbox
         run: |
           key_args=()
 
@@ -91,11 +90,11 @@ jobs:
             key_args=(--key-file "${key_file}" --no-pem-output)
           fi
 
-          ./scripts/package-chrome-crx.sh \
-            --chrome-bin chrome \
-            --output-dir "$PWD/dist/browser" \
-            --version "${VERSION}" \
-            "${key_args[@]}"
+          nix develop --command \
+            ./scripts/package-chrome-crx.sh \
+              --output-dir "$PWD/dist/browser" \
+              --version "${VERSION}" \
+              "${key_args[@]}"
 
       - name: Sign Firefox extension for self-distribution
         env:

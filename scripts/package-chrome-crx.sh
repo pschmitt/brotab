@@ -7,7 +7,8 @@ Usage: $(basename "$0") [OPTIONS]
 Package the Chrome extension as a CRX.
 
 Options:
-  --chrome-bin PATH   Chrome/Chromium binary to use for packaging
+  --crx3-bin PATH     crx3 binary to use for packaging
+  --chrome-bin PATH   Deprecated alias accepted for compatibility
   --key-file PATH     PEM private key for stable CRX packaging
   --no-pem-output     Do not write a PEM file into the output directory
   --output-dir PATH   Output directory for the CRX artifact
@@ -16,15 +17,12 @@ Options:
 EOF
 }
 
-find_chrome_bin() {
+find_crx3_bin() {
   local candidate
 
   for candidate in \
-    "${CHROME_BIN:-}" \
-    google-chrome-stable \
-    google-chrome \
-    chromium \
-    chromium-browser
+    "${CRX3_BIN:-}" \
+    crx3
   do
     if [[ -n "${candidate:-}" ]] && command -v "$candidate" >/dev/null 2>&1
     then
@@ -33,7 +31,7 @@ find_chrome_bin() {
     fi
   done
 
-  echo "Could not find a Chrome/Chromium binary" >&2
+  echo "Could not find a crx3 binary" >&2
   return 2
 }
 
@@ -53,8 +51,7 @@ PY
 }
 
 main() {
-  local chrome_bin
-  local -a chrome_args
+  local crx3_bin
   local extension_source
   local key_file
   local output_crx
@@ -64,6 +61,7 @@ main() {
   local repo_root
   local temp_dir
   local temp_extension_dir
+  local temp_extension_zip
   local version
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
@@ -71,8 +69,7 @@ main() {
     return 2
   }
 
-  chrome_bin=""
-  chrome_args=()
+  crx3_bin=""
   extension_source="${repo_root}/bruvtab/extension/chrome"
   key_file=""
   output_dir="${repo_root}/dist/browser"
@@ -82,8 +79,12 @@ main() {
   while [[ -n "${1:-}" ]]
   do
     case "$1" in
+      --crx3-bin)
+        crx3_bin="$2"
+        shift 2
+        ;;
       --chrome-bin)
-        chrome_bin="$2"
+        crx3_bin="$2"
         shift 2
         ;;
       --key-file)
@@ -136,28 +137,17 @@ PY
     return 2
   fi
 
-  if [[ -n "${chrome_bin:-}" ]]
+  if [[ -n "${crx3_bin:-}" ]]
   then
-    if ! command -v "$chrome_bin" >/dev/null 2>&1
+    if ! command -v "$crx3_bin" >/dev/null 2>&1
     then
-      echo "Chrome binary not found: $chrome_bin" >&2
+      echo "crx3 binary not found: $crx3_bin" >&2
       return 2
     fi
 
-    chrome_bin="$(command -v "$chrome_bin")"
+    crx3_bin="$(command -v "$crx3_bin")"
   else
-    chrome_bin="$(find_chrome_bin)"
-  fi
-
-  if [[ -n "${CHROME_EXTRA_ARGS:-}" ]]
-  then
-    # shellcheck disable=SC2206
-    chrome_args=(${CHROME_EXTRA_ARGS})
-  fi
-
-  if [[ -n "${CI:-}" ]]
-  then
-    chrome_args+=(--no-sandbox)
+    crx3_bin="$(find_crx3_bin)"
   fi
 
   mkdir -p "$output_dir"
@@ -167,39 +157,42 @@ PY
   temp_dir="$(mktemp -d)"
   trap 'rm -rf "$temp_dir"' EXIT
   temp_extension_dir="${temp_dir}/chrome"
+  temp_extension_zip="${temp_dir}/chrome.zip"
 
   cp -R "$extension_source" "$temp_extension_dir"
   chmod -R +w "$temp_extension_dir"
   strip_manifest_key "${temp_extension_dir}/manifest.json"
 
+  # Normalize mtimes so the ZIP fed to crx3 is reproducible across environments.
+  find "$temp_extension_dir" -exec touch -h -d '1980-01-01 00:00:00Z' {} +
+
+  (
+    cd "$temp_extension_dir"
+    find . -type f | LC_ALL=C sort | zip -X -q "$temp_extension_zip" -@
+  )
+
   if [[ -n "${key_file:-}" ]]
   then
-    "$chrome_bin" \
-      "${chrome_args[@]}" \
-      --pack-extension="${temp_extension_dir}" \
-      --pack-extension-key="${key_file}"
+    "$crx3_bin" pack "$temp_extension_zip" --pem "$key_file" --outfile "$output_crx"
   else
-    "$chrome_bin" \
-      "${chrome_args[@]}" \
-      --pack-extension="${temp_extension_dir}"
+    "$crx3_bin" keygen "${temp_dir}/generated-key.pem" >/dev/null
+    "$crx3_bin" pack "$temp_extension_zip" --pem "${temp_dir}/generated-key.pem" --outfile "$output_crx"
   fi
 
-  if [[ ! -f "${temp_extension_dir}.crx" ]]
+  if [[ ! -f "$output_crx" ]]
   then
-    echo "Chrome did not produce a CRX file" >&2
+    echo "crx3 did not produce a CRX file" >&2
     return 1
   fi
 
-  mv -f "${temp_extension_dir}.crx" "$output_crx"
-
   if [[ -n "${pem_output:-}" ]]
   then
-    if [[ -f "${temp_extension_dir}.pem" ]]
-    then
-      mv -f "${temp_extension_dir}.pem" "$output_pem"
-    elif [[ -n "${key_file:-}" ]]
+    if [[ -n "${key_file:-}" ]]
     then
       cp -f "$key_file" "$output_pem"
+    elif [[ -f "${temp_dir}/generated-key.pem" ]]
+    then
+      cp -f "${temp_dir}/generated-key.pem" "$output_pem"
     fi
   fi
 
