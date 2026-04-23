@@ -115,9 +115,38 @@ $ sudo pip install bruvtab    # alternative
 4. Install Chrome (Chromium) / Brave extension: Chrome Web Store publishing is pending for the new BruvTab extension ID.
 5. Enjoy! (try `bruvtab clients`, `bruvtab windows`, `bruvtab list`, `bruvtab words`)
 
-## Build, test and manual installation
+## Development
 
-see [DEVELOPMENT.md](DEVELOPMENT.md)
+### Setup in development mode
+
+```bash
+pip install -e .
+bruvtab install --tests
+```
+
+### Running tests
+
+```bash
+just unit-test
+just smoke-test
+just integration-test
+```
+
+### Browser Extensions
+
+- **Firefox**: Load temporary addon from `about:debugging#/runtime/this-firefox`.
+- **Chrome/Chromium**: Load unpacked extension from `chrome://extensions/` (Enable Developer mode).
+
+### Release procedure
+
+1. Bump version in `bruvtab/__version__.py`.
+2. Update `CHANGELOG.md`.
+3. Create and push a git tag.
+
+```bash
+$ git tag x.y.z
+$ git push origin main --tags
+```
 
 ## Related projects
 

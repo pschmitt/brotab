@@ -1,5 +1,0 @@
-Flask>=2.2,<4
-requests>=2.24
-psutil>=5.8
-rich>=14.1
-Werkzeug>=2.2,<4

@@ -27,12 +27,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements/test.txt
+          python -m pip install .[test]
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
       - name: Test with pytest
         run: |
-          python -m pip install pytest pytest-cov
           pytest bruvtab -s -vvv --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html --ignore bruvtab/albert --ignore bruvtab/tests/integration

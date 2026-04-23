@@ -19,7 +19,26 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
+dependencies = [
+  "Flask>=2.2,<4",
+  "requests>=2.24",
+  "psutil>=5.8",
+  "rich>=14.1",
+  "Werkzeug>=2.2,<4",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+]
+dev = [
+  "ipython",
+  "ipdb",
+  "pudb",
+  "bruvtab[test]",
+]
 
 [project.urls]
 Homepage = "https://github.com/pschmitt/bruvtab"
@@ -34,7 +53,6 @@ include-package-data = true
 
 [tool.setuptools.dynamic]
 version = { attr = "bruvtab.__version__.__version__" }
-dependencies = { file = ["requirements/base.txt"] }
 
 [tool.setuptools.packages.find]
 include = ["bruvtab", "bruvtab.*"]

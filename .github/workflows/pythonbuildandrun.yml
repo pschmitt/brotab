@@ -25,4 +25,14 @@ jobs:
           python -m build
 
       - name: Run smoke test
-        run: bash test_build_install_run.sh
+        run: |
+          pip install dist/*.whl
+          python -c 'from bruvtab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=0, delay=0)' &
+          sleep 3
+          bruvtab list
+          bruvtab windows
+          bruvtab clients
+          bruvtab active
+          bruvtab words
+          bruvtab text
+          bruvtab html
