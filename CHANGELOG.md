@@ -1,3 +1,9 @@
+2.0.1 (2026-04-23)
+
+* Sign Firefox add-on and package the signed XPI for Home Manager / NixOS
+* Rename Firefox mediator host to `bruvtab_mediator`
+* Fix single-tab close behavior and Chrome browser detection
+
 2.0.0 (2025-01-22)
 
 * manifest v3 support for Google Chrome extension

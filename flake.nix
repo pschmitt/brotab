@@ -1,5 +1,5 @@
 {
-  description = "BruvTab 2.0 browser tab control with Nix-friendly browser integration outputs";
+  description = "BruvTab 2.0.1 browser tab control with Nix-friendly browser integration outputs";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -21,7 +21,7 @@
           py = pkgs.python3Packages;
           bruvtab = py.buildPythonApplication {
             pname = "bruvtab";
-            version = "2.0.0";
+            version = "2.0.1";
             format = "setuptools";
             src = self;
 
@@ -70,13 +70,13 @@
             ];
           };
 
-          chromeExtension = pkgs.runCommand "bruvtab-chrome-extension-2.0.0" { } ''
+          chromeExtension = pkgs.runCommand "bruvtab-chrome-extension-2.0.1" { } ''
             mkdir -p $out
             cp -R ${self}/bruvtab/extension/chrome/. $out/
           '';
 
           firefoxAddon =
-            pkgs.runCommand "bruvtab-firefox-addon-2.0.0"
+            pkgs.runCommand "bruvtab-firefox-addon-2.0.1"
               {
                 passthru = {
                   addonId = "bruvtab_mediator@example.org";
@@ -93,7 +93,7 @@
                   "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$addon_id.xpi"
               '';
 
-          firefoxExtension = pkgs.runCommand "bruvtab-firefox-extension-2.0.0" { } ''
+          firefoxExtension = pkgs.runCommand "bruvtab-firefox-extension-2.0.1" { } ''
             mkdir -p $out
             cp -R ${self}/bruvtab/extension/firefox/. $out/
           '';

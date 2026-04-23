@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "en-US": "Control your browser's tabs from the command line."
+  },
+  "categories": [
+    "other"
+  ],
+  "version": {
+    "license": "MIT",
+    "approval_notes": "BruvTab 2.0.1 renames the native messaging host to bruvtab_mediator and updates Firefox packaging to use a Mozilla-signed XPI for NixOS/Home Manager deployment."
+  }
+}

@@ -13,6 +13,7 @@ Required environment:
 Options:
   --source-dir PATH     Extension source directory
   --artifacts-dir PATH  Output directory for signed artifacts
+  --amo-metadata PATH   Metadata JSON for listed submissions
   --api-key KEY         Override WEB_EXT_API_KEY
   --api-secret SECRET   Override WEB_EXT_API_SECRET
   --channel CHANNEL     Signing channel (default: unlisted)
@@ -24,6 +25,7 @@ main() {
   local repo_root
   local source_dir
   local artifacts_dir
+  local amo_metadata
   local api_key
   local api_secret
   local channel
@@ -35,6 +37,7 @@ main() {
 
   source_dir="${repo_root}/bruvtab/extension/firefox"
   artifacts_dir="${repo_root}/dist/firefox-signed"
+  amo_metadata=""
   api_key="${WEB_EXT_API_KEY:-}"
   api_secret="${WEB_EXT_API_SECRET:-}"
   channel="unlisted"
@@ -48,6 +51,10 @@ main() {
         ;;
       --artifacts-dir)
         artifacts_dir="$2"
+        shift 2
+        ;;
+      --amo-metadata)
+        amo_metadata="$2"
         shift 2
         ;;
       --api-key)
@@ -97,12 +104,22 @@ main() {
   export WEB_EXT_API_KEY="$api_key"
   export WEB_EXT_API_SECRET="$api_secret"
 
-  web-ext sign \
-    --source-dir "$source_dir" \
-    --artifacts-dir "$artifacts_dir" \
-    --channel "$channel" \
-    --ignore-files 'readme.txt' \
+  local -a web_ext_args
+  web_ext_args=(
+    sign
+    --source-dir "$source_dir"
+    --artifacts-dir "$artifacts_dir"
+    --channel "$channel"
+    --ignore-files 'readme.txt'
     --no-input
+  )
+
+  if [[ -n "${amo_metadata:-}" ]]
+  then
+    web_ext_args+=(--amo-metadata "$amo_metadata")
+  fi
+
+  web-ext "${web_ext_args[@]}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]
