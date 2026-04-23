@@ -8,6 +8,8 @@
   outputs = { self, nixpkgs }:
     let
       lib = nixpkgs.lib;
+      signedFirefoxXpiVersion = "2.0.0";
+      signedFirefoxXpiHash = "sha256-sx6JWSbaF4GTwHaKdkq33u7JSghPfVgeRmOihN2Bsp8=";
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -19,6 +21,10 @@
         let
           pkgs = import nixpkgs { inherit system; };
           py = pkgs.python3Packages;
+          signedFirefoxXpi = pkgs.fetchurl {
+            url = "https://github.com/pschmitt/bruvtab/releases/download/${signedFirefoxXpiVersion}/469b5c80160a48cda84c-${signedFirefoxXpiVersion}.xpi";
+            hash = signedFirefoxXpiHash;
+          };
           bruvtab = py.buildPythonApplication {
             pname = "bruvtab";
             version = "2.0.1";
@@ -87,7 +93,7 @@
                 addon_id='bruvtab_mediator@example.org'
 
                 mkdir -p "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-                cp ${self}/artifacts/firefox/bruvtab_mediator@example.org.xpi "$out/$addon_id.xpi"
+                cp ${signedFirefoxXpi} "$out/$addon_id.xpi"
 
                 ln -s "$out/$addon_id.xpi" \
                   "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$addon_id.xpi"
