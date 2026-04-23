@@ -19,7 +19,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
           py = pkgs.python3Packages;
-          bruvtab = py.buildPythonApplication rec {
+          bruvtab = py.buildPythonApplication {
             pname = "bruvtab";
             version = "2.0.0";
             format = "setuptools";
