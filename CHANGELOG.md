@@ -1,3 +1,9 @@
+2.0.2 (2026-04-23)
+
+* Switch Firefox releases to self-distributed signed XPI uploads on GitHub releases
+* Fix Chrome CRX packaging in GitHub Actions and upload browser artifacts from the release workflow
+* Simplify flake browser outputs and clean up shared browser IDs / version variables
+
 2.0.1 (2026-04-23)
 
 * Sign Firefox add-on and package the signed XPI for Home Manager / NixOS

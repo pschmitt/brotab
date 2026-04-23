@@ -1,5 +1,5 @@
 {
-  description = "BruvTab 2.0.1 browser tab control with Nix-friendly browser integration outputs";
+  description = "BruvTab browser tab control with Nix-friendly browser integration outputs";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -7,12 +7,13 @@
 
   outputs = { self, nixpkgs }:
     let
-      chromeCrxHash = "sha256-FDpnX7pt2yDPg9JnMnM3307+QceFGDNjLHxLEd4X3fc=";
-      chromeCrxVersion = "2.0.1";
+      version = "2.0.2";
+      chromeCrxVersion = version;
+      chromeCrxHash = lib.fakeHash;
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
+      firefoxAddonId = "bruvtab_mediator@example.org";
+      firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
       lib = nixpkgs.lib;
-      signedFirefoxXpiVersion = "2.0.0";
-      signedFirefoxXpiHash = "sha256-sx6JWSbaF4GTwHaKdkq33u7JSghPfVgeRmOihN2Bsp8=";
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -28,10 +29,6 @@
             url = "https://github.com/pschmitt/bruvtab/releases/download/${chromeCrxVersion}/bruvtab-chrome-${chromeCrxVersion}.crx";
             hash = chromeCrxHash;
           };
-          signedFirefoxXpi = pkgs.fetchurl {
-            url = "https://github.com/pschmitt/bruvtab/releases/download/${signedFirefoxXpiVersion}/469b5c80160a48cda84c-${signedFirefoxXpiVersion}.xpi";
-            hash = signedFirefoxXpiHash;
-          };
           chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-${chromeCrxVersion}" { } ''
               mkdir -p $out
               cp ${chromeCrxAsset} $out/bruvtab.crx
@@ -39,7 +36,7 @@
             '';
           bruvtab = py.buildPythonApplication {
             pname = "bruvtab";
-            version = "2.0.1";
+            inherit version;
             format = "pyproject";
             src = self;
 
@@ -92,41 +89,36 @@
             ];
           };
 
-          chromeExtension = pkgs.runCommand "bruvtab-chrome-extension-2.0.1" { } ''
-            mkdir -p $out
-            cp -R ${self}/bruvtab/extension/chrome/. $out/
-          '';
-
-          firefoxAddon =
-            pkgs.runCommand "bruvtab-firefox-addon-2.0.1"
+          firefoxXpi =
+            pkgs.runCommand "bruvtab-firefox-xpi-${version}"
               {
+                nativeBuildInputs = [ pkgs.zip ];
                 passthru = {
-                  addonId = "bruvtab_mediator@example.org";
-                  extid = "bruvtab_mediator@example.org";
+                  addonId = firefoxAddonId;
+                  extid = firefoxAddonId;
                 };
               }
               ''
-                addon_id='bruvtab_mediator@example.org'
+                addon_id='${firefoxAddonId}'
 
-                mkdir -p "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-                cp ${signedFirefoxXpi} "$out/$addon_id.xpi"
+                mkdir -p "$out/share/mozilla/extensions/${firefoxAppId}"
+
+                (
+                  cd "${self}/bruvtab/extension/firefox"
+                  find . -type f | LC_ALL=C sort | zip -X -q "$out/$addon_id.xpi" -@
+                )
 
                 ln -s "$out/$addon_id.xpi" \
-                  "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$addon_id.xpi"
+                  "$out/share/mozilla/extensions/${firefoxAppId}/$addon_id.xpi"
               '';
 
-          firefoxExtension = pkgs.runCommand "bruvtab-firefox-extension-2.0.1" { } ''
-            mkdir -p $out
-            cp -R ${self}/bruvtab/extension/firefox/. $out/
-          '';
         in
         {
           default = bruvtab;
           bruvtab = bruvtab;
-          chromeExtension = chromeExtension;
           chromeCrx = chromeCrx;
-          firefoxAddon = firefoxAddon;
-          firefoxExtension = firefoxExtension;
+          firefoxAddon = firefoxXpi;
+          firefoxXpi = firefoxXpi;
         });
 
       apps = forAllSystems (system:

@@ -4,19 +4,19 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Sign the Firefox BruvTab extension through AMO as an unlisted add-on.
+Sign the Firefox BruvTab extension for self-distribution.
 
 Required environment:
-  WEB_EXT_API_KEY       AMO JWT issuer key
-  WEB_EXT_API_SECRET    AMO JWT secret
+  WEB_EXT_API_KEY       Mozilla Add-ons API JWT issuer key
+  WEB_EXT_API_SECRET    Mozilla Add-ons API JWT secret
 
 Options:
   --source-dir PATH     Extension source directory
   --artifacts-dir PATH  Output directory for signed artifacts
-  --amo-metadata PATH   Metadata JSON for listed submissions
+  --amo-metadata PATH   Metadata JSON for listed AMO submissions
   --api-key KEY         Override WEB_EXT_API_KEY
   --api-secret SECRET   Override WEB_EXT_API_SECRET
-  --channel CHANNEL     Signing channel (default: unlisted)
+  --channel CHANNEL     Signing channel (default: unlisted/self-distributed)
   -h, --help            Show this help
 EOF
 }
@@ -37,7 +37,7 @@ main() {
 
   source_dir="${repo_root}/bruvtab/extension/firefox"
   artifacts_dir="${repo_root}/dist/firefox-signed"
-  amo_metadata="${repo_root}/assets/firefox/amo-metadata.json"
+  amo_metadata=""
   api_key="${WEB_EXT_API_KEY:-}"
   api_secret="${WEB_EXT_API_SECRET:-}"
   channel="unlisted"
@@ -114,7 +114,7 @@ main() {
     --no-input
   )
 
-  if [[ -n "${amo_metadata:-}" && -f "$amo_metadata" ]]
+  if [[ -n "${amo_metadata:-}" && "$channel" != "unlisted" && -f "$amo_metadata" ]]
   then
     web_ext_args+=(--amo-metadata "$amo_metadata")
   fi

@@ -79,6 +79,7 @@ jobs:
         shell: bash
         env:
           CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
+          CHROME_EXTRA_ARGS: --no-sandbox
         run: |
           key_args=()
 
@@ -96,7 +97,7 @@ jobs:
             --version "${VERSION}" \
             "${key_args[@]}"
 
-      - name: Sign Firefox extension
+      - name: Sign Firefox extension for self-distribution
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
@@ -118,6 +119,22 @@ jobs:
           fi
 
           cp "$signed_xpi" "dist/browser/bruvtab-firefox-${VERSION}.xpi"
+
+      - name: Verify browser release assets
+        shell: bash
+        run: |
+          test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
+          test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
+
+      - name: Upload browser artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-artifacts-${{ env.VERSION }}
+          path: |
+            dist/browser/*.crx
+            dist/browser/*.xpi
+            dist/browser/*.zip
+          if-no-files-found: error
 
       - name: Create release
         uses: softprops/action-gh-release@v2

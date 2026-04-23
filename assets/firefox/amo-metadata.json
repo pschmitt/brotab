@@ -7,6 +7,6 @@
   ],
   "version": {
     "license": "MIT",
-    "approval_notes": "BruvTab 2.0.1 renames the native messaging host to bruvtab_mediator and updates Firefox packaging to use a Mozilla-signed XPI for NixOS/Home Manager deployment."
+    "approval_notes": "BruvTab 2.0.2 switches Firefox release signing to self-distributed XPI uploads on GitHub releases and fixes Chrome CRX packaging in CI."
   }
 }
