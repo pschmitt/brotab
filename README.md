@@ -90,7 +90,10 @@ Options:
 
 ## Installation
 
+### Standard (pipx / pip)
+
 1. Install command-line client:
+
 ```bash
 # Preferred method
 pipx install bruvtab
@@ -101,13 +104,42 @@ pip install --user bruvtab
 ```
 
 2. Install native app manifests:
+
 ```bash
 bruvtab install
 ```
 
 3. Install Browser extension:
-   * **Firefox**: [Download from AMO](https://addons.mozilla.org/en-US/firefox/addon/bruvtab/)
-   * **Chrome/Brave/Chromium**: Pending Chrome Web Store update. For now, load unpacked extension from `bruvtab/extension/chrome/` in developer mode.
+
+* **Firefox**: [Download from AMO](https://addons.mozilla.org/en-US/firefox/addon/bruvtab/)
+* **Chrome/Brave/Chromium**: Pending Chrome Web Store update. For now, load unpacked extension from `bruvtab/extension/chrome/` in developer mode.
+
+### NixOS / Home Manager
+
+Add `bruvtab` as an input to your flake and use the following configuration:
+
+```nix
+{ config, pkgs, inputs, ... }:
+let
+  bruvtabPkg = inputs.bruvtab.packages.${pkgs.system}.bruvtab;
+  bruvtabCrx = inputs.bruvtab.packages.${pkgs.system}.chromeCrx;
+  # The Extension ID is calculated from the private key generated during build
+  extensionId = builtins.readFile "${bruvtabCrx}/extension-id";
+in
+{
+  programs.chromium = {
+    enable = true;
+    extensions = [
+      {
+        id = extensionId;
+        crxPath = "${bruvtabCrx}/bruvtab.crx";
+        version = "2.0.1";
+      }
+    ];
+    nativeMessagingHosts = [ bruvtabPkg ];
+  };
+}
+```
 
 ## Development
 
@@ -116,10 +148,22 @@ bruvtab install
 ```bash
 # Editable install with dev dependencies
 pip install -e .[dev,test]
+```
+
+```bash
+# Install native manifests for testing
 bruvtab install --tests
 ```
 
 ### Testing
+
+Run all tests:
+
+```bash
+just test-all
+```
+
+Or run individual suites:
 
 ```bash
 just unit-test
