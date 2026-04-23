@@ -14,7 +14,7 @@ BruvTab is a CLI tool for managing browser tabs (Firefox, Chrome/Chromium). It c
 - **Testing**:
   - Unit tests: `pytest bruvtab/tests` (or `just unit-test`).
   - Smoke tests: `just smoke-test` (runs locally with mocked mediators).
-  - Integration tests: `just integration-test` (runs in Docker via `jess.Dockerfile`). Use `just integration-build` to build the image.
+  - Integration tests: `just integration-test` (runs in Docker via `bruvtab/tests/integration/Dockerfile`). Use `just integration-build` to build the image.
 
 ## Standards & Conventions
 - **Python**: Follow `.pylintrc`. Use `uv` or `pip` for dependency management.

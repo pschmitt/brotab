@@ -23,7 +23,7 @@ smoke-test: build
   bruvtab html
 
 integration-build:
-  docker build -t bruvtab-integration -f jess.Dockerfile .
+  docker build -t bruvtab-integration -f bruvtab/tests/integration/Dockerfile .
 
 integration-test:
   INTEGRATION_TEST=1 pytest -v -k test_integration -s
