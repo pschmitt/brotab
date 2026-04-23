@@ -37,7 +37,7 @@ main() {
 
   source_dir="${repo_root}/bruvtab/extension/firefox"
   artifacts_dir="${repo_root}/dist/firefox-signed"
-  amo_metadata=""
+  amo_metadata="${repo_root}/assets/firefox/amo-metadata.json"
   api_key="${WEB_EXT_API_KEY:-}"
   api_secret="${WEB_EXT_API_SECRET:-}"
   channel="unlisted"
@@ -114,7 +114,7 @@ main() {
     --no-input
   )
 
-  if [[ -n "${amo_metadata:-}" ]]
+  if [[ -n "${amo_metadata:-}" && -f "$amo_metadata" ]]
   then
     web_ext_args+=(--amo-metadata "$amo_metadata")
   fi

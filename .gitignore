@@ -2,9 +2,11 @@ __pycache__
 .mypy_cache
 .vscode
 .pytest_cache
+.venv
 ignore
 dist
 build
+artifacts
 bruvtab.egg-info
 target
 bruvtab/node_modules
