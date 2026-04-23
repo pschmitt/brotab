@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 license = "MIT"
 authors = [
   { name = "Philipp Schmitt", email = "philipp@schmitt.co" },
+  { name = "Yuri Bochkarev", email = "baltazar.bz@gmail.com" },
 ]
 classifiers = [
   "Programming Language :: Python",

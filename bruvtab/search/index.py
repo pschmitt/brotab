@@ -18,7 +18,7 @@ logger = logging.getLogger('bruvtab')
 def index(sqlite_filename, tsv_filename):
     logger.info('Reading tsv file %s', tsv_filename)
     # https://stackoverflow.com/questions/15063936/csv-error-field-larger-than-field-limit-131072
-    # https://github.com/balta2ar/bruvtab/issues/25
+    # https://github.com/pschmitt/bruvtab/issues/25
     # It should work on Python 3 and Python 2, on any CPU / OS.
     csv.field_size_limit(int(ctypes.c_ulong(-1).value // 2))
 

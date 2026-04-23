@@ -1,7 +1,7 @@
 # BruvTab
 
-![GitHub](https://img.shields.io/github/license/balta2ar/bruvtab)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/balta2ar/bruvtab)
+![GitHub](https://img.shields.io/github/license/pschmitt/bruvtab)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/pschmitt/bruvtab)
 [![PyPI version](https://badge.fury.io/py/bruvtab.svg)](https://badge.fury.io/py/bruvtab)
 ![Mozilla Add-on](https://img.shields.io/amo/v/bruvtab)
 
@@ -160,7 +160,7 @@ $ git push origin main --tags
 
 ## Author
 
-Yuri Bochkarev
+Philipp Schmitt
 
 ## License
 

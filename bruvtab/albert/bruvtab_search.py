@@ -28,8 +28,8 @@ md_id = "bruvtab"
 md_name = "BruvTab Search"
 md_description = "Search your indexed browser tabs' contents."
 md_license = "BSD-2"
-md_url = "https://github.com/balta2ar/bruvtab"
-md_maintainers = "@balta2ar"
+md_url = "https://github.com/pschmitt/bruvtab"
+md_maintainers = "@pschmitt"
 
 SQL_DB_FILENAME = '/tmp/tabs.sqlite'
 SQL_DB_TTL_SECONDS = 5 * 60
