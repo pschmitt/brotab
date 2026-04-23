@@ -57,7 +57,7 @@
                 bruvtab/mediator/firefox_mediator.json \
                 > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
 
-              jq --arg out "$out" --arg ext "knldjmfmopnpolahpmmgbagdohdnhkik" '
+              jq --arg out "$out" --arg ext "gcbobllgbdnjilcobohhdkaddibbjidl" '
                 .path = "\($out)/bin/bruvtab_mediator"
                 | .allowed_origins = (
                     (.allowed_origins // [])

@@ -40,14 +40,10 @@ This document serves the purpose of being a reminder to dev
 Chrome extension IDs:
 
 Debug:
-    "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"
+    "chrome-extension://gcbobllgbdnjilcobohhdkaddibbjidl/"
 
-  // Extension ID: knldjmfmopnpolahpmmgbagdohdnhkik
-  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDcBHwzDvyBQ6bDppkIs9MP4ksKqCMyXQ/A52JivHZKh4YO/9vJsT3oaYhSpDCE9RPocOEQvwsHsFReW2nUEc6OLLyoCFFxIb7KkLGs
-mfakkut/fFdNJYh0xOTbSN8YvLWcqph09XAY2Y/f0AL7vfO1cuCqtkMt8hFrBGWxDdf9CQIDAQAB",
-
-Prod:
-    "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
+  // Extension ID: gcbobllgbdnjilcobohhdkaddibbjidl
+  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgshokAudhB/hfn7hM0JgyvM9NVESvWAXoiSnyg89Zf+qzYl2q/fkfY4hnWaOF2qwZeSuBExkSOh2rDsbB4HK6QdeMeTI0WLnXmIWh6a7LM5Gk/RSm38M6ZdkEqBs5yYH7+8kqfsstyDpOEz7AdLsv+gWYh0qJf1XnJi+cA+pykwIDAQAB",
 
 ## TODO, things to implement
 
@@ -180,7 +176,7 @@ Chromium is a bit more demading. Several conditions are required before you can
 run Chromium in Xvfb in integration tests:
 
 1. Use extension from bruvtab/extension/chrome-tests. It contains the correct
-   fake Key and extension ID (knldjmfmopnpolahpmmgbagdohdnhkik). The same
+   fake Key and extension ID (gcbobllgbdnjilcobohhdkaddibbjidl). The same
    extension ID is installed when you run `bruvtab install` command in Docker.
    This very extension ID is also present in
    bruvtab/mediator/chromium_mediator_tests.json, which is used in `bruvtab install`.

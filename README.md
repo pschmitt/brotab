@@ -4,7 +4,6 @@
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/balta2ar/bruvtab)
 [![PyPI version](https://badge.fury.io/py/bruvtab.svg)](https://badge.fury.io/py/bruvtab)
 ![Mozilla Add-on](https://img.shields.io/amo/v/bruvtab)
-![Chrome Web Store](https://img.shields.io/chrome-web-store/v/mhpeahbikehnfkfnmopaigggliclhmnc)
 
 Control your browser's tabs from the terminal.
 
@@ -113,7 +112,7 @@ $ sudo pip install bruvtab    # alternative
 ```
 2. Install native app manifests: `bruvtab install`
 3. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/bruvtab/
-4. Install Chrome (Chromium) / Brave extension: https://chrome.google.com/webstore/detail/bruvtab/mhpeahbikehnfkfnmopaigggliclhmnc/
+4. Install Chrome (Chromium) / Brave extension: Chrome Web Store publishing is pending for the new BruvTab extension ID.
 5. Enjoy! (try `bruvtab clients`, `bruvtab windows`, `bruvtab list`, `bruvtab words`)
 
 ## Build, test and manual installation
@@ -137,4 +136,3 @@ Yuri Bochkarev
 ## License
 
 MIT
-
