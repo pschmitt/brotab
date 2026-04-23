@@ -9,7 +9,7 @@
     let
       version = "2.0.2";
       chromeCrxVersion = version;
-      chromeCrxHash = lib.fakeHash;
+      chromeCrxHash = "sha256-vciYaKeCjgkB2MQeD6tCXd7vTGW5DWPTitlzEmfQkYA=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       firefoxAddonId = "bruvtab_mediator@example.org";
       firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
