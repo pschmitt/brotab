@@ -42,11 +42,13 @@
               psutil
               requests
               rich
+              rich-argparse
               werkzeug
             ];
 
             nativeCheckInputs = with py; [
               pytestCheckHook
+              pytest-cov
             ];
 
             postInstall = ''
@@ -147,18 +149,24 @@
         let
           pkgs = import nixpkgs { inherit system; };
           py = pkgs.python3.withPackages (ps: [
+            ps.build
             ps.flask
             ps.psutil
             ps.pytest
+            ps.pytest-cov
             ps.requests
             ps.rich
+            ps.rich-argparse
             ps.werkzeug
           ]);
         in
         {
           default = pkgs.mkShell {
             packages = [
+              pkgs.docker
+              pkgs.git
               pkgs.jq
+              pkgs.just
               pkgs.nodejs
               pkgs.web-ext
               py
