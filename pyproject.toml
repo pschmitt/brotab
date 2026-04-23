@@ -25,6 +25,7 @@ dependencies = [
   "requests>=2.24",
   "psutil>=5.8",
   "rich>=14.1",
+  "rich-argparse",
   "Werkzeug>=2.2,<4",
 ]
 

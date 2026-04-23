@@ -64,6 +64,7 @@ from urllib.parse import quote_plus
 
 from rich.json import JSON
 from rich.table import Table
+from rich_argparse import RichHelpFormatter
 
 from bruvtab.api import MultipleMediatorsAPI
 from bruvtab.api import SingleMediatorAPI
@@ -538,6 +539,7 @@ def no_command(parser, args):
 
 def parse_args(args):
     parser = ArgumentParser(
+        formatter_class=RichHelpFormatter,
         description='''
         bruvtab (bruvtab = Browser Tabs) is a command-line tool that helps you manage
         browser tabs. It can help you list, close, reorder, open and activate
