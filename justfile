@@ -32,6 +32,9 @@ test-all: unit-test smoke-build smoke-test integration-build integration-test
 sign-firefox-addon:
   ./scripts/sign-firefox-addon.sh
 
+package-browser-artifacts:
+  ./scripts/package-browser-artifacts.sh
+
 reset:
   pkill python3 || true
   pkill xvfb-run || true
