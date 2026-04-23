@@ -85,6 +85,38 @@
             cp -R ${self}/bruvtab/extension/chrome/. $out/
           '';
 
+          # Simplified Chrome CRX package
+          chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-2.0.1"
+            {
+              nativeBuildInputs = [ pkgs.zip pkgs.openssl pkgs.python3 ];
+            } ''
+            mkdir -p $out
+            cp -R ${self}/bruvtab/extension/chrome ./src
+            chmod -R +w ./src
+
+            # Strip key from manifest
+            python3 -c "import json; d=json.load(open('src/manifest.json')); d.pop('key', None); json.dump(d, open('src/manifest.json', 'w'))"
+
+            # Generate a temporary key for this build
+            openssl genrsa -out key.pem 2048 2>/dev/null
+
+            # Create ZIP
+            cd src && zip -r ../extension.zip . && cd ..
+
+            # Calculate Extension ID from public key
+            # Mapping: 0-15 -> a-p
+            extension_id=$(openssl rsa -in key.pem -pubout -outform DER 2>/dev/null | \
+              openssl sha256 -binary | \
+              head -c 16 | \
+              python3 -c "import sys; print(''.join([chr(ord('a') + (x >> 4)) + chr(ord('a') + (x & 0x0f)) for x in sys.stdin.buffer.read()]))")
+
+            echo "$extension_id" > $out/extension-id
+            cp extension.zip $out/bruvtab.zip
+            cp key.pem $out/key.pem
+
+            echo "Generated Extension ID: $extension_id"
+          '';
+
           firefoxAddon =
             pkgs.runCommand "bruvtab-firefox-addon-2.0.1"
               {
@@ -112,6 +144,7 @@
           default = bruvtab;
           bruvtab = bruvtab;
           chromeExtension = chromeExtension;
+          chromeCrx = chromeCrx;
           firefoxAddon = firefoxAddon;
           firefoxExtension = firefoxExtension;
         });
@@ -168,7 +201,9 @@
               pkgs.jq
               pkgs.just
               pkgs.nodejs
+              pkgs.openssl
               pkgs.web-ext
+              pkgs.zip
               py
             ];
           };
