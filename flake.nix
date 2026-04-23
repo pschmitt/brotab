@@ -108,7 +108,7 @@
             extension_id=$(openssl rsa -in key.pem -pubout -outform DER 2>/dev/null | \
               openssl sha256 -binary | \
               head -c 16 | \
-              python3 -c "import sys; print(''.join([chr(ord('a') + (x >> 4)) + chr(ord('a') + (x & 0x0f)) for x in sys.stdin.buffer.read()]))")
+              python3 -c "import sys; print('''.join([chr(ord('a') + (x >> 4)) + chr(ord('a') + (x & 0x0f)) for x in sys.stdin.buffer.read()]))")
 
             echo "$extension_id" > $out/extension-id
             cp extension.zip $out/bruvtab.zip
