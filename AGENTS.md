@@ -21,7 +21,7 @@ BruvTab is a CLI tool for managing browser tabs (Firefox, Chrome/Chromium). It c
 - **Version Management**: Version is defined in `bruvtab/__version__.py`.
 - **Commits**: Follow existing style (concise, focus on "why").
 - **Browser IDs**:
-  - Chrome: `gcbobllgbdnjilcobohhdkaddibbjidl` (debug/test ID).
+  - Chrome: `edpgjheobdplebiikjgjgpmonakingef` (debug/test ID).
 
 ## Critical Files
 - `justfile`: Defines all major dev workflows.

@@ -1,5 +1,5 @@
 {
-  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgshokAudhB/hfn7hM0JgyvM9NVESvWAXoiSnyg89Zf+qzYl2q/fkfY4hnWaOF2qwZeSuBExkSOh2rDsbB4HK6QdeMeTI0WLnXmIWh6a7LM5Gk/RSm38M6ZdkEqBs5yYH7+8kqfsstyDpOEz7AdLsv+gWYh0qJf1XnJi+cA+pykwIDAQAB",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7hGi0LE481tNW2JlhiXhidx3l63svDNCoKu8klNlY9LDV5F/e1R4eNVF/mFra0W9Cm7j3o/j9x2+X2HIhxLYysL9h8puq5ZKAUT33H523UQ7MmqBMQRrrHokNK/78iptrVptCE6xPsZZVKx4meBYExpheDfW47memO0SorrO6uVZXNirdEWYQJ+HR+TNkdetP3J9UqCnZ+sJXo6wOV9bAJft6H+4x3G1IPOTWUwue7OL212UPCxiVbF6M8rjFV3PrStIFl2HQsBCXrHblbfjU7PpWlFyVMiTcjcD6P9fSd0n0bmL1ju/689qnX6D8v+UH8nYX6QGMPsbGmGl4YwrlQIDAQAB",
   "description": "Control your browser's tabs from command line",
   "manifest_version": 3,
   "name": "BruvTab",

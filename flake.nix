@@ -25,67 +25,8 @@
             url = "https://github.com/pschmitt/bruvtab/releases/download/${signedFirefoxXpiVersion}/469b5c80160a48cda84c-${signedFirefoxXpiVersion}.xpi";
             hash = signedFirefoxXpiHash;
           };
-          bruvtab = py.buildPythonApplication {
-            pname = "bruvtab";
-            version = "2.0.1";
-            format = "pyproject";
-            src = self;
-
-            nativeBuildInputs = with py; [
-              pkgs.jq
-              setuptools
-              wheel
-            ];
-
-            propagatedBuildInputs = with py; [
-              flask
-              psutil
-              requests
-              rich
-              rich-argparse
-              werkzeug
-            ];
-
-            nativeCheckInputs = with py; [
-              pytestCheckHook
-              pytest-cov
-            ];
-
-            postInstall = ''
-              mkdir -p $out/lib/mozilla/native-messaging-hosts $out/lib/chromium/NativeMessagingHosts
-              mkdir -p $out/lib/bruvtab/extensions/chrome $out/lib/bruvtab/extensions/firefox
-
-              jq --arg out "$out" '.path = "\($out)/bin/bruvtab_mediator"' \
-                bruvtab/mediator/firefox_mediator.json \
-                > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
-
-              jq --arg out "$out" --arg ext "gcbobllgbdnjilcobohhdkaddibbjidl" '
-                .path = "\($out)/bin/bruvtab_mediator"
-                | .allowed_origins = (
-                    (.allowed_origins // [])
-                    + ["chrome-extension://\($ext)/"]
-                  | unique)
-              ' \
-                bruvtab/mediator/chromium_mediator.json \
-                > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
-
-              cp -R bruvtab/extension/chrome/. \
-                $out/lib/bruvtab/extensions/chrome/
-              cp -R bruvtab/extension/firefox/. \
-                $out/lib/bruvtab/extensions/firefox/
-            '';
-
-            pythonImportsCheck = [
-              "bruvtab"
-            ];
-          };
-
-          chromeExtension = pkgs.runCommand "bruvtab-chrome-extension-2.0.1" { } ''
-            mkdir -p $out
-            cp -R ${self}/bruvtab/extension/chrome/. $out/
-          '';
-
-          # Proper Chrome CRX v3 package
+          # Chrome CRX package; note that this generates a local keypair at build time.
+          # Downstream consumers must use the generated extension-id file alongside the CRX.
           chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-2.0.1"
             {
               nativeBuildInputs = [ pkgs.zip pkgs.openssl pkgs.python3 ];
@@ -124,22 +65,17 @@ with open('pubkey.der', 'rb') as f: pubkey = f.read()
 with open('sig.bin', 'rb') as f: sig = f.read()
 with open('extension.zip', 'rb') as f: zip_data = f.read()
 
-# CRX3 Header (simplified Protobuf construction)
-# CrxFileHeader { sha256_with_rsa: [{ public_key, signature }] }
-# Tag 1 (sha256_with_rsa) | Length | [Tag 1 (pubkey) | Len | data | Tag 2 (sig) | Len | data]
 inner = b'\x0a' + to_base128(len(pubkey)) + pubkey + b'\x12' + to_base128(len(sig)) + sig
 header = b'\x0a' + to_base128(len(inner)) + inner
 
 with open('bruvtab.crx', 'wb') as f:
-    f.write(b'Cr24')                # Magic
-    f.write(b'\x03\x00\x00\x00')    # Version 3
+    f.write(b'Cr24')
+    f.write(b'\x03\x00\x00\x00')
     f.write(len(header).to_bytes(4, 'little'))
     f.write(header)
     f.write(zip_data)
 PY
 
-            # Calculate Extension ID from public key
-            # Mapping: 0-15 -> a-p
             extension_id=$(openssl sha256 -binary pubkey.der | head -c 16 | \
               python3 -c "import sys; print('''.join([chr(ord('a') + (x >> 4)) + chr(ord('a') + (x & 0x0f)) for x in sys.stdin.buffer.read()]))")
 
@@ -147,6 +83,67 @@ PY
             cp bruvtab.crx $out/
             cp key.pem $out/
             echo "Generated Extension ID: $extension_id"
+          '';
+          bruvtab = py.buildPythonApplication {
+            pname = "bruvtab";
+            version = "2.0.1";
+            format = "pyproject";
+            src = self;
+
+            nativeBuildInputs = with py; [
+              pkgs.jq
+              setuptools
+              wheel
+            ];
+
+            propagatedBuildInputs = with py; [
+              flask
+              psutil
+              requests
+              rich
+              rich-argparse
+              werkzeug
+            ];
+
+            nativeCheckInputs = with py; [
+              pytestCheckHook
+              pytest-cov
+            ];
+
+            postInstall = ''
+              mkdir -p $out/lib/mozilla/native-messaging-hosts $out/lib/chromium/NativeMessagingHosts
+              mkdir -p $out/lib/bruvtab/extensions/chrome $out/lib/bruvtab/extensions/firefox
+
+              chrome_ext_id="$(cat ${chromeCrx}/extension-id)"
+
+              jq --arg out "$out" '.path = "\($out)/bin/bruvtab_mediator"' \
+                bruvtab/mediator/firefox_mediator.json \
+                > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
+
+              jq --arg out "$out" --arg ext "$chrome_ext_id" '
+                .path = "\($out)/bin/bruvtab_mediator"
+                | .allowed_origins = (
+                    (.allowed_origins // [])
+                    + ["chrome-extension://\($ext)/"]
+                  | unique)
+              ' \
+                bruvtab/mediator/chromium_mediator.json \
+                > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
+
+              cp -R bruvtab/extension/chrome/. \
+                $out/lib/bruvtab/extensions/chrome/
+              cp -R bruvtab/extension/firefox/. \
+                $out/lib/bruvtab/extensions/firefox/
+            '';
+
+            pythonImportsCheck = [
+              "bruvtab"
+            ];
+          };
+
+          chromeExtension = pkgs.runCommand "bruvtab-chrome-extension-2.0.1" { } ''
+            mkdir -p $out
+            cp -R ${self}/bruvtab/extension/chrome/. $out/
           '';
 
           firefoxAddon =
