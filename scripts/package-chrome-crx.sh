@@ -54,6 +54,7 @@ PY
 
 main() {
   local chrome_bin
+  local -a chrome_args
   local extension_source
   local key_file
   local output_crx
@@ -71,6 +72,7 @@ main() {
   }
 
   chrome_bin=""
+  chrome_args=()
   extension_source="${repo_root}/bruvtab/extension/chrome"
   key_file=""
   output_dir="${repo_root}/dist/browser"
@@ -147,6 +149,17 @@ PY
     chrome_bin="$(find_chrome_bin)"
   fi
 
+  if [[ -n "${CHROME_EXTRA_ARGS:-}" ]]
+  then
+    # shellcheck disable=SC2206
+    chrome_args=(${CHROME_EXTRA_ARGS})
+  fi
+
+  if [[ -n "${CI:-}" ]]
+  then
+    chrome_args+=(--no-sandbox)
+  fi
+
   mkdir -p "$output_dir"
   output_crx="${output_dir}/bruvtab-chrome-${version}.crx"
   output_pem="${output_dir}/bruvtab-chrome-${version}.pem"
@@ -162,10 +175,12 @@ PY
   if [[ -n "${key_file:-}" ]]
   then
     "$chrome_bin" \
+      "${chrome_args[@]}" \
       --pack-extension="${temp_extension_dir}" \
       --pack-extension-key="${key_file}"
   else
     "$chrome_bin" \
+      "${chrome_args[@]}" \
       --pack-extension="${temp_extension_dir}"
   fi
 
