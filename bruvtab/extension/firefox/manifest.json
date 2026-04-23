@@ -9,11 +9,14 @@
   "icons": {
       "128": "bruvtab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "windows", "activeTab", "<all_urls>"],
-  "applications": {
+  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"],
+  "browser_specific_settings": {
     "gecko": {
       "id": "bruvtab_mediator@example.org",
-      "strict_min_version": "50.0"
+      "data_collection_permissions": {
+        "required": ["none"]
+      },
+      "strict_min_version": "58.0"
     }
   }
 }

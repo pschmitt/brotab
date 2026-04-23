@@ -192,3 +192,15 @@ run Chromium in Xvfb in integration tests:
 firefox: use web-ext run
 https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext
 
+## Signing Firefox extension
+
+Mozilla requires stable Firefox add-ons to be signed, even for self-distribution.
+Use an unlisted signing flow with AMO credentials:
+
+```bash
+export WEB_EXT_API_KEY='user:12345:67'
+export WEB_EXT_API_SECRET='your-jwt-secret'
+./scripts/sign-firefox-addon.sh
+```
+
+Signed artifacts are written to `dist/firefox-signed/`.

@@ -78,7 +78,6 @@
           firefoxAddon =
             pkgs.runCommand "bruvtab-firefox-addon-2.0.0"
               {
-                nativeBuildInputs = [ pkgs.zip ];
                 passthru = {
                   addonId = "bruvtab_mediator@example.org";
                   extid = "bruvtab_mediator@example.org";
@@ -87,14 +86,8 @@
               ''
                 addon_id='bruvtab_mediator@example.org'
 
-                mkdir -p $out/share/bruvtab-firefox-addon
                 mkdir -p "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-                cp -R ${self}/bruvtab/extension/firefox/. $out/share/bruvtab-firefox-addon/
-
-                (
-                  cd $out/share/bruvtab-firefox-addon
-                  zip -qr "$out/$addon_id.xpi" .
-                )
+                cp ${self}/artifacts/firefox/bruvtab_mediator@example.org.xpi "$out/$addon_id.xpi"
 
                 ln -s "$out/$addon_id.xpi" \
                   "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$addon_id.xpi"
@@ -115,6 +108,7 @@
 
       apps = forAllSystems (system:
         let
+          pkgs = import nixpkgs { inherit system; };
           pkg = self.packages.${system}.default;
         in
         {
@@ -125,6 +119,19 @@
           bruvtab = {
             type = "app";
             program = "${pkg}/bin/bruvtab";
+          };
+          sign-firefox-addon = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "sign-firefox-addon";
+              runtimeInputs = [
+                pkgs.git
+                pkgs.web-ext
+              ];
+              text = ''
+                exec "${self}/scripts/sign-firefox-addon.sh" "$@"
+              '';
+            }}/bin/sign-firefox-addon";
           };
         });
 
@@ -145,6 +152,7 @@
             packages = [
               pkgs.jq
               pkgs.nodejs
+              pkgs.web-ext
               py
             ];
           };

@@ -24,6 +24,9 @@ integration-test:
 test-all: unit-test smoke-build smoke-test integration-build integration-test
 	@echo Testing all
 
+sign-firefox-addon:
+	./scripts/sign-firefox-addon.sh
+
 all:
 	echo ALL
 
@@ -36,4 +39,4 @@ switch_to_dev:
 switch_to_prod:
 	echo "Switching to PROD"
 
-.PHONY: reset switch_to_dev switch_to_prod
+.PHONY: reset sign-firefox-addon switch_to_dev switch_to_prod
