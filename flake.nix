@@ -85,7 +85,7 @@
             cp -R ${self}/bruvtab/extension/chrome/. $out/
           '';
 
-          # Simplified Chrome CRX package
+          # Proper Chrome CRX v3 package
           chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-2.0.1"
             {
               nativeBuildInputs = [ pkgs.zip pkgs.openssl pkgs.python3 ];
@@ -94,26 +94,58 @@
             cp -R ${self}/bruvtab/extension/chrome ./src
             chmod -R +w ./src
 
-            # Strip key from manifest
+            # Strip existing key
             python3 -c "import json; d=json.load(open('src/manifest.json')); d.pop('key', None); json.dump(d, open('src/manifest.json', 'w'))"
 
-            # Generate a temporary key for this build
+            # Generate private key
             openssl genrsa -out key.pem 2048 2>/dev/null
+            # Extract public key in DER format
+            openssl rsa -in key.pem -pubout -outform DER -out pubkey.der 2>/dev/null
 
             # Create ZIP
-            cd src && zip -r ../extension.zip . && cd ..
+            (cd src && zip -qr ../extension.zip .)
+
+            # Sign the ZIP
+            openssl dgst -sha256 -sign key.pem -out sig.bin extension.zip
+
+            # Construct CRX v3 header and file using Python
+            python3 - <<'PY'
+import sys
+
+def to_base128(n):
+    res = bytearray()
+    while n > 0x7f:
+        res.append((n & 0x7f) | 0x80)
+        n >>= 7
+    res.append(n)
+    return res
+
+with open('pubkey.der', 'rb') as f: pubkey = f.read()
+with open('sig.bin', 'rb') as f: sig = f.read()
+with open('extension.zip', 'rb') as f: zip_data = f.read()
+
+# CRX3 Header (simplified Protobuf construction)
+# CrxFileHeader { sha256_with_rsa: [{ public_key, signature }] }
+# Tag 1 (sha256_with_rsa) | Length | [Tag 1 (pubkey) | Len | data | Tag 2 (sig) | Len | data]
+inner = b'\x0a' + to_base128(len(pubkey)) + pubkey + b'\x12' + to_base128(len(sig)) + sig
+header = b'\x0a' + to_base128(len(inner)) + inner
+
+with open('bruvtab.crx', 'wb') as f:
+    f.write(b'Cr24')                # Magic
+    f.write(b'\x03\x00\x00\x00')    # Version 3
+    f.write(len(header).to_bytes(4, 'little'))
+    f.write(header)
+    f.write(zip_data)
+PY
 
             # Calculate Extension ID from public key
             # Mapping: 0-15 -> a-p
-            extension_id=$(openssl rsa -in key.pem -pubout -outform DER 2>/dev/null | \
-              openssl sha256 -binary | \
-              head -c 16 | \
+            extension_id=$(openssl sha256 -binary pubkey.der | head -c 16 | \
               python3 -c "import sys; print('''.join([chr(ord('a') + (x >> 4)) + chr(ord('a') + (x & 0x0f)) for x in sys.stdin.buffer.read()]))")
 
             echo -n "$extension_id" > $out/extension-id
-            cp extension.zip $out/bruvtab.zip
-            cp key.pem $out/key.pem
-
+            cp bruvtab.crx $out/
+            cp key.pem $out/
             echo "Generated Extension ID: $extension_id"
           '';
 
