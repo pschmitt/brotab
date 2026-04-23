@@ -35,6 +35,9 @@ sign-firefox-addon:
 package-browser-artifacts:
   ./scripts/package-browser-artifacts.sh
 
+package-chrome-crx:
+  ./scripts/package-chrome-crx.sh
+
 reset:
   pkill python3 || true
   pkill xvfb-run || true

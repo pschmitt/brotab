@@ -159,6 +159,7 @@ $ git push origin main && git push --tags
 ## Commands
 
 chromium-browser --pack-extension=chrome
+./scripts/package-chrome-crx.sh --key-file /path/to/bruvtab-chrome.pem
 
 To make sure that extension works under selenium, copy bruvtab_mediator.json to:
 /etc/opt/chrome/native-messaging-hosts

@@ -24,6 +24,21 @@ package_zip() {
   )
 }
 
+sanitize_chrome_manifest() {
+  local manifest_file="$1"
+
+  python3 - <<'PY' "$manifest_file"
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+data = json.loads(path.read_text())
+data.pop("key", None)
+path.write_text(json.dumps(data, indent=2) + "\n")
+PY
+}
+
 main() {
   local repo_root
   local output_dir
@@ -72,13 +87,20 @@ PY
 
   mkdir -p "$output_dir"
 
+  local temp_dir
+  temp_dir="$(mktemp -d)"
+  trap 'rm -rf "$temp_dir"' EXIT
+
+  cp -R "${repo_root}/bruvtab/extension/chrome" "${temp_dir}/chrome"
+  sanitize_chrome_manifest "${temp_dir}/chrome/manifest.json"
+
   package_zip \
-    "${repo_root}/bruvtab/extension/chrome" \
+    "${temp_dir}/chrome" \
     "${output_dir}/bruvtab-chrome-${version}.zip"
 
   package_zip \
     "${repo_root}/bruvtab/extension/firefox" \
-    "${output_dir}/bruvtab-firefox-source-${version}.zip"
+    "${output_dir}/bruvtab-firefox-unsigned-${version}.xpi"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]

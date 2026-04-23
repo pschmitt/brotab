@@ -72,6 +72,30 @@ jobs:
       - name: Package browser artifacts
         run: ./scripts/package-browser-artifacts.sh --version "${VERSION}"
 
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Build Chrome CRX
+        shell: bash
+        env:
+          CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
+        run: |
+          key_args=()
+
+          if [[ -n "${CHROME_EXTENSION_KEY:-}" ]]
+          then
+            key_file="$(mktemp)"
+            trap 'rm -f "${key_file}"' EXIT
+            printf '%s\n' "${CHROME_EXTENSION_KEY}" > "${key_file}"
+            key_args=(--key-file "${key_file}" --no-pem-output)
+          fi
+
+          ./scripts/package-chrome-crx.sh \
+            --chrome-bin chrome \
+            --output-dir "$PWD/dist/browser" \
+            --version "${VERSION}" \
+            "${key_args[@]}"
+
       - name: Sign Firefox extension
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
@@ -102,5 +126,6 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/*.whl
+            dist/browser/*.crx
             dist/browser/*.zip
             dist/browser/*.xpi
