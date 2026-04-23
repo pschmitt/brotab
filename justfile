@@ -23,10 +23,12 @@ smoke-test: build
   bruvtab html
 
 integration-test:
+  @echo "Warning: integration tests require a local browser and mediator setup."
+  @echo "They previously ran in Docker which has been removed to slim the repo."
   INTEGRATION_TEST=1 pytest -v -k test_integration -s
 
-test-all: unit-test smoke-test integration-test
-  @echo "Testing all"
+test-all: unit-test smoke-test
+  @echo "Testing all (excluding integration tests)"
 
 sign-firefox-addon:
   ./scripts/sign-firefox-addon.sh

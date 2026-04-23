@@ -37,6 +37,7 @@ dev = [
   "ipython",
   "ipdb",
   "pudb",
+  "build",
   "bruvtab[test]",
 ]
 
