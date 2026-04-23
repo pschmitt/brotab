@@ -62,6 +62,7 @@ from typing import List
 from typing import Tuple
 from urllib.parse import quote_plus
 
+from rich.json import JSON
 from rich.table import Table
 
 from bruvtab.api import MultipleMediatorsAPI
@@ -137,6 +138,13 @@ def parse_prefix_and_window_id(prefix_window_id):
     return prefix, window_id
 
 
+def print_json(data):
+    if stdout_supports_rich():
+        stdout_console.print(JSON(json.dumps(data)))
+    else:
+        print(json.dumps(data))
+
+
 def move_tabs(args):
     bruvtab_logger.info('Moving tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
@@ -156,7 +164,7 @@ def list_tabs(args):
             {"id": x[0], "title": x[1], "url": x[2]}
             for x in [y.split("\t") for y in tabs]
         ]
-        print(json.dumps(tabs_json))
+        print_json(tabs_json)
     else:
         message = "\n".join(tabs) + "\n"
         sys.stdout.buffer.write(message.encode("utf8"))
@@ -182,10 +190,17 @@ def activate_tab(args):
 def show_active_tabs(args):
     bruvtab_logger.info('Showing active tabs: %s', args)
     apis = create_clients(args.target_hosts)
+    active_tabs = []
     for api in apis:
         tabs = api.get_active_tabs(args)
         for tab in tabs:
-            print('%s\t%s' % (tab, api))
+            active_tabs.append({"id": tab, "client": str(api)})
+
+    if args.json:
+        print_json(active_tabs)
+    else:
+        for tab in active_tabs:
+            print('%s\t%s' % (tab['id'], tab['client']))
 
 
 def screenshot(args):
@@ -376,11 +391,15 @@ def _get_window_id(tab):
     return '%s.%s' % (client_id, window_id)
 
 
-def _print_available_windows(tabs):
+def _print_available_windows(tabs, as_json=False):
     windows = []
     for key, group in groupby(sorted(tabs), _get_window_id):
         group = list(group)
         windows.append((key, len(group)))
+
+    if as_json:
+        print_json([{"window": key, "tabs": count} for key, count in windows])
+        return
 
     if stdout_supports_rich():
         table = Table(title='Windows')
@@ -399,12 +418,26 @@ def show_windows(args):
     bruvtab_logger.info('Showing windows')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.list_tabs([])
-    _print_available_windows(tabs)
+    _print_available_windows(tabs, args.json)
 
 
 def show_clients(args):
     bruvtab_logger.info('Showing clients')
     clients = create_clients(args.target_hosts)
+
+    if args.json:
+        clients_json = [
+            {
+                "prefix": client._prefix,
+                "host": client._host,
+                "port": client._port,
+                "pid": client._pid,
+                "browser": client._browser,
+            }
+            for client in clients
+        ]
+        print_json(clients_json)
+        return
 
     if stdout_supports_rich():
         table = Table(title='Clients')
@@ -513,6 +546,8 @@ def parse_args(args):
 
     parser.add_argument('--target', dest='target_hosts', default=None,
                         help='Target hosts IP:Port')
+    parser.add_argument('--json', action='store_true', default=False,
+                        help='JSON output (default=False)')
 
     subparsers = parser.add_subparsers()
     parser.set_defaults(func=partial(no_command, parser))
@@ -537,8 +572,6 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
         ''')
     parser_list_tabs.set_defaults(func=list_tabs)
-    parser_list_tabs.add_argument('--json', action='store_const', const=True, default=False,
-                                  help='JSON output (default=False)')
 
     parser_close_tabs = subparsers.add_parser(
         'close',
