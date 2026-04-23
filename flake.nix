@@ -28,18 +28,20 @@
           bruvtab = py.buildPythonApplication {
             pname = "bruvtab";
             version = "2.0.1";
-            format = "setuptools";
+            format = "pyproject";
             src = self;
 
-            nativeBuildInputs = [
+            nativeBuildInputs = with py; [
               pkgs.jq
+              setuptools
+              wheel
             ];
 
             propagatedBuildInputs = with py; [
               flask
               psutil
               requests
-              setuptools
+              rich
               werkzeug
             ];
 
@@ -149,7 +151,7 @@
             ps.psutil
             ps.pytest
             ps.requests
-            ps.setuptools
+            ps.rich
             ps.werkzeug
           ]);
         in

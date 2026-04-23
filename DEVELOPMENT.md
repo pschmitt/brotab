@@ -5,7 +5,7 @@
 1. Install docker: https://docs.docker.com/get-docker/
 1. Install Python3
 1. Clone repository and cd into it
-1. Run:```rm -rf ./dist && python3 -m build && docker build -t bruvtab-buildinstallrun . && docker run -it bruvtab-buildinstallrun```
+1. Run:```just smoke-build && just smoke-test```
 1. The build is in the dist folder and can be installed with ```pip install $(find ./dist -name *.whl -type f) ```
 
 ## Installation in development mode
@@ -115,7 +115,7 @@ Install/devops
 [_] add integration with rofi
 [_] zsh completion for commands
 [+] add file with fzf integration: bruvtab-fzf.zsh
-[+] add setup.py, make sure bruvtab, bruvtab binary is available (python code)
+[+] add pyproject.toml, make sure bruvtab and bruvtab_mediator are available
 
 Testing:
 [_] how to setup integration testing? w chromium, firefox
@@ -156,7 +156,7 @@ set -o allexport; source .env; set +o allexport
 
 ## Old steps of release procedure
 
-$ python -m build
+$ just build
 $ uv build # this one is faster
 $ git push origin main && git push --tags
 

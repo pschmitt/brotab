@@ -2,6 +2,7 @@ import os
 import logging
 import platform
 
+from bruvtab.ui import print_info
 
 logger = logging.getLogger('bruvtab')
 
@@ -24,14 +25,14 @@ def register_native_manifest_windows_chrome(manifest_filename):
     key_path = r'Software\Google\Chrome\NativeMessagingHosts\bruvtab_mediator'
     manifest_filename = make_windows_path(manifest_filename)
     logger.info('Setting registry key "%s" to "%s"', key_path, manifest_filename)
-    print('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
+    print_info('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
     windows_registry_set_key(key_path, manifest_filename)
 
 def register_native_manifest_windows_brave(manifest_filename):
     key_path = r'Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\bruvtab_mediator'
     manifest_filename = make_windows_path(manifest_filename)
     logger.info('Setting registry key "%s" to "%s"', key_path, manifest_filename)
-    print('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
+    print_info('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
     windows_registry_set_key(key_path, manifest_filename)
 
 
@@ -39,7 +40,7 @@ def register_native_manifest_windows_firefox(manifest_filename):
     key_path = r'Software\Mozilla\NativeMessagingHosts\bruvtab_mediator'
     manifest_filename = make_windows_path(manifest_filename)
     logger.info('Setting registry key "%s" to "%s"', key_path, manifest_filename)
-    print('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
+    print_info('Setting registry key "%s" to "%s"' % (key_path, manifest_filename))
     windows_registry_set_key(key_path, manifest_filename)
 
 

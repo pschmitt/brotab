@@ -1,3 +1,54 @@
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "bruvtab"
+description = "Control your browser's tabs from the command line"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Philipp Schmitt", email = "philipp@schmitt.co" },
+]
+classifiers = [
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/pschmitt/bruvtab"
+Repository = "https://github.com/pschmitt/bruvtab"
+
+[project.scripts]
+bruvtab = "bruvtab.main:main"
+bruvtab_mediator = "bruvtab.mediator.bruvtab_mediator:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "bruvtab.__version__.__version__" }
+dependencies = { file = ["requirements/base.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["bruvtab", "bruvtab.*"]
+exclude = ["firefox_extension", "firefox_mediator"]
+
+[tool.setuptools.package-data]
+bruvtab = [
+  "albert/*.qss",
+  "mediator/*.json",
+]
+
+[tool.setuptools.data-files]
+"config" = [
+  "bruvtab/mediator/chromium_mediator.json",
+  "bruvtab/mediator/firefox_mediator.json",
+  "bruvtab/albert/Bruvtab.qss",
+]

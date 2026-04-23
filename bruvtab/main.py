@@ -53,6 +53,7 @@ import re
 import sys
 import time
 from argparse import ArgumentParser
+from importlib import resources
 from functools import partial
 from itertools import groupby
 from json import loads, dumps
@@ -60,6 +61,8 @@ from string import ascii_lowercase
 from typing import List
 from typing import Tuple
 from urllib.parse import quote_plus
+
+from rich.table import Table
 
 from bruvtab.api import MultipleMediatorsAPI
 from bruvtab.api import SingleMediatorAPI
@@ -85,6 +88,10 @@ from bruvtab.platform import register_native_manifest_windows_chrome
 from bruvtab.platform import register_native_manifest_windows_firefox
 from bruvtab.search.index import index
 from bruvtab.search.query import query
+from bruvtab.ui import print_error
+from bruvtab.ui import print_info
+from bruvtab.ui import stdout_console
+from bruvtab.ui import stdout_supports_rich
 from bruvtab.utils import get_file_size
 from bruvtab.utils import split_tab_ids
 from bruvtab.utils import which
@@ -345,13 +352,22 @@ def show_duplicates(args):
     # I'm not using uniq here because it's not easy to get duplicates
     # only by a single column. awk is much easier in this regard.
     # print('bruvtab list | sort -k3 | uniq -f2 -D | cut -f1 | bruvtab close')
+    title_command = "bruvtab list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bruvtab close"
+    url_command = "bruvtab list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bruvtab close"
+
+    if stdout_supports_rich():
+        stdout_console.print('Close duplicates by Title:', style='bold cyan')
+        stdout_console.print(title_command, style='green')
+        stdout_console.print()
+        stdout_console.print('Close duplicates by URL:', style='bold cyan')
+        stdout_console.print(url_command, style='green')
+        return
+
     print("Close duplicates by Title:")
-    print(
-        "bruvtab list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bruvtab close")
+    print(title_command)
     print("")
     print("Close duplicates by URL:")
-    print(
-        "bruvtab list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bruvtab close")
+    print(url_command)
 
 
 def _get_window_id(tab):
@@ -361,9 +377,22 @@ def _get_window_id(tab):
 
 
 def _print_available_windows(tabs):
+    windows = []
     for key, group in groupby(sorted(tabs), _get_window_id):
         group = list(group)
-        print('%s\t%s' % (key, len(group)))
+        windows.append((key, len(group)))
+
+    if stdout_supports_rich():
+        table = Table(title='Windows')
+        table.add_column('Window')
+        table.add_column('Tabs', justify='right')
+        for window_id, tab_count in windows:
+            table.add_row(window_id, str(tab_count))
+        stdout_console.print(table)
+        return
+
+    for window_id, tab_count in windows:
+        print('%s\t%s' % (window_id, tab_count))
 
 
 def show_windows(args):
@@ -375,7 +404,27 @@ def show_windows(args):
 
 def show_clients(args):
     bruvtab_logger.info('Showing clients')
-    for client in create_clients(args.target_hosts):
+    clients = create_clients(args.target_hosts)
+
+    if stdout_supports_rich():
+        table = Table(title='Clients')
+        table.add_column('Prefix')
+        table.add_column('Host')
+        table.add_column('Port', justify='right')
+        table.add_column('PID', justify='right')
+        table.add_column('Browser')
+        for client in clients:
+            table.add_row(
+                client._prefix,
+                client._host,
+                str(client._port),
+                str(client._pid),
+                client._browser,
+            )
+        stdout_console.print(table)
+        return
+
+    for client in clients:
         print(client)
 
 
@@ -422,13 +471,12 @@ def install_mediator(args):
             tests_targets = [(s, d) for (s, d) in tests_targets if browser_token in d]
         native_app_manifests.extend(tests_targets)
 
-    from pkg_resources import resource_string
     for filename, destination in native_app_manifests:
         destination = os.path.expanduser(os.path.expandvars(destination))
-        template = resource_string(__name__, filename).decode('utf8')
+        template = resources.files('bruvtab').joinpath(filename).read_text(encoding='utf8')
         manifest = template.replace(r'$PWD/bruvtab_mediator.py', mediator_path)
         bruvtab_logger.info('Installing template %s into %s', filename, destination)
-        print('Installing mediator manifest %s' % destination)
+        print_info('Installing mediator manifest %s' % destination)
 
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         with open(destination, 'w') as file_:
@@ -441,8 +489,8 @@ def install_mediator(args):
         if is_windows() and 'Brave' in destination:
             register_native_manifest_windows_brave(destination)
 
-    print('Firefox extension is bundled in the BruvTab package output.')
-    print('Chrome extension is bundled in the BruvTab package output.')
+    print_info('Firefox extension is bundled in the BruvTab package output.')
+    print_info('Chrome extension is bundled in the BruvTab package output.')
 
 
 def executejs(args):
@@ -450,7 +498,7 @@ def executejs(args):
 
 
 def no_command(parser, args):
-    print('No command has been specified')
+    print_error('No command has been specified')
     parser.print_help()
     return 1
 
