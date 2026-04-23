@@ -7,7 +7,7 @@
 
   outputs = { self, nixpkgs }:
     let
-      chromeCrxHash = "sha256-igX9DXRfD6eLAA+QtGzDI5ao3AsFqE5ifn74bjSV4bA=";
+      chromeCrxHash = "sha256-FDpnX7pt2yDPg9JnMnM3307+QceFGDNjLHxLEd4X3fc=";
       chromeCrxVersion = "2.0.1";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       lib = nixpkgs.lib;
