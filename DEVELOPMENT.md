@@ -5,7 +5,7 @@
 1. Install docker: https://docs.docker.com/get-docker/
 1. Install Python3
 1. Clone repository and cd into it
-1. Run:```rm -rf ./dist && python3 setup.py sdist bdist_wheel && docker build -t bruvtab-buildinstallrun . && docker run -it bruvtab-buildinstallrun```
+1. Run:```rm -rf ./dist && python3 -m build && docker build -t bruvtab-buildinstallrun . && docker run -it bruvtab-buildinstallrun```
 1. The build is in the dist folder and can be installed with ```pip install $(find ./dist -name *.whl -type f) ```
 
 ## Installation in development mode
@@ -148,21 +148,17 @@ $ git ci -m 'Bump version from 1.2.0 to 1.2.1\n<CHANGELOG HERE>'
 $ git tag 1.2.1
 $ git push origin master && git push --tags
 
-# Go to releases and update the CHANGELOG: https://github.com/balta2ar/bruvtab/releases
-# This will trigger PyPI package build and upload
+# Push the tag. GitHub Actions will create the GitHub release and publish to PyPI.
 ```
-
-Go to Github tags and manually create a release from the tag:
-https://github.com/balta2ar/bruvtab/tags
 
 Load env file as follows:
 set -o allexport; source .env; set +o allexport
 
 ## Old steps of release procedure
 
-$ python setup.py sdist bdist_wheel
+$ python -m build
 $ uv build # this one is faster
-$ twine upload dist/*
+$ git push origin main && git push --tags
 
 ## Commands
 

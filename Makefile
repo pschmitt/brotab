@@ -3,7 +3,7 @@ unit-test:
 
 smoke-build:
 	rm -rf ./dist && \
-	python setup.py sdist bdist_wheel && \
+	python -m build && \
 	docker build -t bruvtab-smoke -f smoke.Dockerfile .
 
 smoke-test:

@@ -1,0 +1,55 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          current_tag="$(git describe --tags --abbrev=0)"
+
+          if git describe --tags --abbrev=0 "${current_tag}^" >/dev/null 2>&1
+          then
+            previous_tag="$(git describe --tags --abbrev=0 "${current_tag}^")"
+          else
+            previous_tag="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
+          fi
+
+          changelog="$(
+            git log "${previous_tag}..${current_tag}" \
+              --oneline \
+              --no-merges \
+              --pretty=format:"%h %s"
+          )"
+
+          if [[ -z "${changelog}" ]]
+          then
+            changelog="No changes recorded."
+          fi
+
+          delimiter="$(openssl rand -hex 12)"
+          {
+            echo "changelog<<${delimiter}"
+            echo "${changelog}"
+            echo "${delimiter}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
