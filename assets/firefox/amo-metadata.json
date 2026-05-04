@@ -7,6 +7,6 @@
   ],
   "version": {
     "license": "MIT",
-    "approval_notes": "BruvTab 2.0.2 switches Firefox release signing to self-distributed XPI uploads on GitHub releases and fixes Chrome CRX packaging in CI."
+    "approval_notes": "BruvTab is built from the GitHub release tag. The release workflow submits this same Firefox extension source to AMO and uploads AMO's signed XPI to the matching GitHub release."
   }
 }

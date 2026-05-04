@@ -96,13 +96,15 @@ jobs:
               --version "${VERSION}" \
               "${key_args[@]}"
 
-      - name: Sign Firefox extension for self-distribution
+      - name: Publish Firefox extension to AMO
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
         run: |
           ./scripts/sign-firefox-addon.sh \
-            --channel unlisted \
+            --channel listed \
+            --amo-metadata "$PWD/assets/firefox/amo-metadata.json" \
+            --approval-timeout 18000000 \
             --artifacts-dir "$PWD/dist/firefox-signed"
 
       - name: Normalize Firefox XPI artifact name

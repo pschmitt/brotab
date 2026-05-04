@@ -14,6 +14,7 @@ Options:
   --source-dir PATH     Extension source directory
   --artifacts-dir PATH  Output directory for signed artifacts
   --amo-metadata PATH   Metadata JSON for listed AMO submissions
+  --approval-timeout MS How long web-ext waits for AMO approval
   --api-key KEY         Override WEB_EXT_API_KEY
   --api-secret SECRET   Override WEB_EXT_API_SECRET
   --channel CHANNEL     Signing channel (default: unlisted/self-distributed)
@@ -28,6 +29,7 @@ main() {
   local amo_metadata
   local api_key
   local api_secret
+  local approval_timeout
   local channel
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
@@ -40,6 +42,7 @@ main() {
   amo_metadata=""
   api_key="${WEB_EXT_API_KEY:-}"
   api_secret="${WEB_EXT_API_SECRET:-}"
+  approval_timeout=""
   channel="unlisted"
 
   while [[ -n "${1:-}" ]]
@@ -55,6 +58,10 @@ main() {
         ;;
       --amo-metadata)
         amo_metadata="$2"
+        shift 2
+        ;;
+      --approval-timeout)
+        approval_timeout="$2"
         shift 2
         ;;
       --api-key)
@@ -117,6 +124,11 @@ main() {
   if [[ -n "${amo_metadata:-}" && "$channel" != "unlisted" && -f "$amo_metadata" ]]
   then
     web_ext_args+=(--amo-metadata "$amo_metadata")
+  fi
+
+  if [[ -n "${approval_timeout:-}" ]]
+  then
+    web_ext_args+=(--approval-timeout "$approval_timeout")
   fi
 
   web-ext "${web_ext_args[@]}"
