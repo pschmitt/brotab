@@ -1,3 +1,8 @@
+2.0.3 (2026-05-04)
+
+* Publish listed AMO releases and separate self-distributed Firefox XPIs
+* Fetch signed Firefox XPIs from GitHub release assets for Nix packaging
+
 2.0.2 (2026-04-23)
 
 * Switch Firefox releases to self-distributed signed XPI uploads on GitHub releases
