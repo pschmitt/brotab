@@ -1,9 +1,13 @@
+from io import StringIO
 from string import ascii_letters
 from time import sleep
 from typing import List
 from unittest import TestCase
 from unittest.mock import patch
 from uuid import uuid4
+
+from rich.console import Console
+from rich.json import JSON
 
 from bruvtab.api import SingleMediatorAPI
 from bruvtab.env import http_iface
@@ -12,6 +16,8 @@ from bruvtab.files import in_temp_dir
 from bruvtab.files import spit
 from bruvtab.inout import get_available_tcp_port
 from bruvtab.main import create_clients
+from bruvtab.main import parse_args
+from bruvtab.main import print_json
 from bruvtab.main import run_commands
 from bruvtab.mediator.http_server import MediatorHttpServer
 from bruvtab.mediator.remote_api import default_remote_api
@@ -399,3 +405,71 @@ class TestList(WithMediator):
             {'name': 'list_tabs'},
         ]
         assert output[-1:] == [b'a.1.1\ttitle\turl\n']
+
+
+class TestJsonOutput(TestCase):
+    def test_print_json_plain_pretty(self):
+        with patch('bruvtab.main.stdout_supports_rich', return_value=False):
+            with patch('builtins.print') as mocked:
+                print_json([{'id': 'a.1.1'}])
+
+        mocked.assert_called_once_with('[\n  {\n    "id": "a.1.1"\n  }\n]')
+
+    def test_print_json_rich_pretty(self):
+        with patch('bruvtab.main.stdout_supports_rich', return_value=True):
+            with patch('bruvtab.main.stdout_console.print') as mocked:
+                print_json([{'id': 'a.1.1'}])
+
+        renderable = mocked.call_args.args[0]
+        assert isinstance(renderable, JSON)
+        assert renderable.text.plain == '[\n  {\n    "id": "a.1.1"\n  }\n]'
+
+    def test_parse_args_accepts_json_after_subcommand(self):
+        args = parse_args(['tabs', '--json'])
+
+        assert args.json is True
+
+    def test_parse_args_accepts_target_after_subcommand(self):
+        args = parse_args(['tabs', '--target', '127.0.0.1:4625'])
+
+        assert args.target_hosts == '127.0.0.1:4625'
+
+
+class TestRichTableOutput(WithMediator):
+    def _render_output(self, commands):
+        buffer = StringIO()
+        console = Console(file=buffer, force_terminal=False, color_system=None, width=120)
+        with patch('bruvtab.main.stdout_supports_rich', return_value=True):
+            with patch('bruvtab.main.stdout_console', console):
+                self._run_commands(commands)
+        return buffer.getvalue()
+
+    def test_tabs_are_rendered_as_ascii_table(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1\ttitle\turl'],
+        ])
+
+        output = self._render_output(['tabs'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+        ]
+        assert output.splitlines()[0].startswith('+')
+        assert 'ID' in output
+        assert 'Title' in output
+        assert 'URL' in output
+        assert 'a.1.1' in output
+        assert 'title' in output
+        assert 'url' in output
+
+    def test_clients_rich_output_has_no_title(self):
+        self.mediator.transport.received_extend(['mocked'])
+
+        output = self._render_output(['clients'])
+
+        assert 'Clients\n' not in output
+        assert output.splitlines()[0].startswith('+')
+        assert '| Prefix | Host      | Port |     PID | Browser |' in output
+        assert '| a.     | localhost |' in output

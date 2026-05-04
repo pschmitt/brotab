@@ -14,7 +14,7 @@ BruvTab is a fork of [brotab](https://github.com/balta2ar/brotab), originally cr
 * **Cross-browser**: Support for Firefox, Chrome, Chromium, and Brave.
 * **Unified interface**: List and manage tabs from multiple browsers in a single view.
 * **Scriptable**: Ideal for use with `fzf`, `rofi`, or custom shell scripts.
-* **JSON support**: Global `--json` flag for easy integration with other tools.
+* **JSON support**: Global `--json` flag with pretty output and terminal colors.
 * **Search & Index**: Index tab contents and search them using SQLite FTS5.
 * **Rich Output**: Colorized help and tables using the `rich` library.
 
@@ -85,7 +85,7 @@ Options:
   -h, --help            show this help message and exit
   --target TARGET_HOSTS
                         Target hosts IP:Port
-  --json                JSON output (default=False)
+  --json                Pretty JSON output (colored on terminals)
 ```
 
 ## Installation

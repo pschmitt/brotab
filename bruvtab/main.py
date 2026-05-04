@@ -63,6 +63,7 @@ from typing import Tuple
 from urllib.parse import quote_plus
 
 from rich.json import JSON
+from rich import box
 from rich.table import Table
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
@@ -181,9 +182,20 @@ def parse_open_arguments(values):
 
 def print_json(data):
     if stdout_supports_rich():
-        stdout_console.print(JSON(json.dumps(data)))
+        stdout_console.print(JSON.from_data(data))
     else:
-        print(json.dumps(data))
+        print(json.dumps(data, indent=2))
+
+
+def print_table(columns, rows, right_aligned_columns=None):
+    right_aligned_columns = set() if right_aligned_columns is None else set(right_aligned_columns)
+    table = Table(box=box.ASCII)
+    for column in columns:
+        justify = 'right' if column in right_aligned_columns else 'left'
+        table.add_column(column, justify=justify)
+    for row in rows:
+        table.add_row(*[str(value) for value in row])
+    stdout_console.print(table)
 
 
 def move_tabs(args):
@@ -206,6 +218,9 @@ def list_tabs(args):
             for x in [y.split("\t") for y in tabs]
         ]
         print_json(tabs_json)
+    elif stdout_supports_rich():
+        rows = [tab.split('\t', 2) for tab in tabs]
+        print_table(['ID', 'Title', 'URL'], rows)
     else:
         message = "\n".join(tabs) + "\n"
         sys.stdout.buffer.write(message.encode("utf8"))
@@ -239,6 +254,8 @@ def show_active_tabs(args):
 
     if args.json:
         print_json(active_tabs)
+    elif stdout_supports_rich():
+        print_table(['ID', 'Client'], [[tab['id'], tab['client']] for tab in active_tabs])
     else:
         for tab in active_tabs:
             print('%s\t%s' % (tab['id'], tab['client']))
@@ -444,12 +461,7 @@ def _print_available_windows(tabs, as_json=False):
         return
 
     if stdout_supports_rich():
-        table = Table(title='Windows')
-        table.add_column('Window')
-        table.add_column('Tabs', justify='right')
-        for window_id, tab_count in windows:
-            table.add_row(window_id, str(tab_count))
-        stdout_console.print(table)
+        print_table(['Window', 'Tabs'], windows, right_aligned_columns={'Tabs'})
         return
 
     for window_id, tab_count in windows:
@@ -482,21 +494,14 @@ def show_clients(args):
         return
 
     if stdout_supports_rich():
-        table = Table(title='Clients')
-        table.add_column('Prefix')
-        table.add_column('Host')
-        table.add_column('Port', justify='right')
-        table.add_column('PID', justify='right')
-        table.add_column('Browser')
-        for client in clients:
-            table.add_row(
-                client._prefix,
-                client._host,
-                str(client._port),
-                str(client._pid),
-                client._browser,
-            )
-        stdout_console.print(table)
+        print_table(
+            ['Prefix', 'Host', 'Port', 'PID', 'Browser'],
+            [
+                [client._prefix, client._host, client._port, client._pid, client._browser]
+                for client in clients
+            ],
+            right_aligned_columns={'Port', 'PID'},
+        )
         return
 
     for client in clients:
@@ -578,7 +583,35 @@ def no_command(parser, args):
     return 1
 
 
+def normalize_global_args(args):
+    global_args = []
+    remaining_args = []
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg == '--json':
+            global_args.append(arg)
+            index += 1
+            continue
+        if arg == '--target':
+            if index + 1 >= len(args):
+                remaining_args.append(arg)
+                index += 1
+                continue
+            global_args.extend([arg, args[index + 1]])
+            index += 2
+            continue
+        if arg.startswith('--target='):
+            global_args.append(arg)
+            index += 1
+            continue
+        remaining_args.append(arg)
+        index += 1
+    return global_args + remaining_args
+
+
 def parse_args(args):
+    args = normalize_global_args(args)
     parser = ArgumentParser(
         formatter_class=make_help_formatter,
         description='''
@@ -590,7 +623,7 @@ def parse_args(args):
     parser.add_argument('--target', dest='target_hosts', default=None,
                         help='Target hosts IP:Port')
     parser.add_argument('--json', action='store_true', default=False,
-                        help='JSON output (default=False)')
+                        help='Pretty JSON output (colored on terminals)')
 
     subparsers = parser.add_subparsers()
     parser.set_defaults(func=partial(no_command, parser))
