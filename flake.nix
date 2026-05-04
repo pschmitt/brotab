@@ -85,6 +85,7 @@
 
             postInstall = ''
               mkdir -p $out/lib/mozilla/native-messaging-hosts $out/lib/chromium/NativeMessagingHosts
+              mkdir -p $out/etc/chromium/native-messaging-hosts
               mkdir -p $out/lib/bruvtab/extensions/chrome $out/lib/bruvtab/extensions/firefox
 
               jq --arg out "$out" '.path = "\($out)/bin/bruvtab_mediator"' \
@@ -100,6 +101,10 @@
               ' \
                 bruvtab/mediator/chromium_mediator.json \
                 > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
+
+              ln -s \
+                $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json \
+                $out/etc/chromium/native-messaging-hosts/bruvtab_mediator.json
 
               cp -R bruvtab/extension/chrome/. \
                 $out/lib/bruvtab/extensions/chrome/
