@@ -3,7 +3,7 @@
 ![GitHub](https://img.shields.io/github/license/pschmitt/bruvtab)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/pschmitt/bruvtab)
 [![PyPI version](https://badge.fury.io/py/bruvtab.svg)](https://badge.fury.io/py/bruvtab)
-![Mozilla Add-on](https://img.shields.io/amo/v/bruvtab)
+[![Mozilla Add-on](https://img.shields.io/amo/v/469b5c80160a48cda84c)](https://addons.mozilla.org/en-US/firefox/addon/469b5c80160a48cda84c/)
 
 Control your browser's tabs from the terminal.
 
