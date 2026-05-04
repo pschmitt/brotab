@@ -18,6 +18,8 @@ Options:
   --api-key KEY         Override WEB_EXT_API_KEY
   --api-secret SECRET   Override WEB_EXT_API_SECRET
   --channel CHANNEL     Signing channel (default: unlisted/self-distributed)
+  --manifest-version VERSION
+                       Override manifest.json version before signing
   -h, --help            Show this help
 EOF
 }
@@ -31,6 +33,9 @@ main() {
   local api_secret
   local approval_timeout
   local channel
+  local manifest_version
+  local signing_source_dir
+  local temp_source_dir
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
     echo "Must be run from inside the bruvtab git repository" >&2
@@ -44,6 +49,8 @@ main() {
   api_secret="${WEB_EXT_API_SECRET:-}"
   approval_timeout=""
   channel="unlisted"
+  manifest_version=""
+  temp_source_dir=""
 
   while [[ -n "${1:-}" ]]
   do
@@ -74,6 +81,10 @@ main() {
         ;;
       --channel)
         channel="$2"
+        shift 2
+        ;;
+      --manifest-version)
+        manifest_version="$2"
         shift 2
         ;;
       -h|--help)
@@ -108,13 +119,35 @@ main() {
 
   mkdir -p "$artifacts_dir"
 
+  signing_source_dir="$source_dir"
+
+  if [[ -n "${manifest_version:-}" ]]
+  then
+    temp_source_dir="$(mktemp -d)"
+    cp -R "$source_dir/." "$temp_source_dir/"
+
+    python3 - <<'PY' "$temp_source_dir/manifest.json" "$manifest_version"
+import json
+import pathlib
+import sys
+
+manifest_path = pathlib.Path(sys.argv[1])
+version = sys.argv[2]
+manifest = json.loads(manifest_path.read_text())
+manifest["version"] = version
+manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+PY
+
+    signing_source_dir="$temp_source_dir"
+  fi
+
   export WEB_EXT_API_KEY="$api_key"
   export WEB_EXT_API_SECRET="$api_secret"
 
   local -a web_ext_args
   web_ext_args=(
     sign
-    --source-dir "$source_dir"
+    --source-dir "$signing_source_dir"
     --artifacts-dir "$artifacts_dir"
     --channel "$channel"
     --ignore-files 'readme.txt'
@@ -132,6 +165,14 @@ main() {
   fi
 
   web-ext "${web_ext_args[@]}"
+  local status=$?
+
+  if [[ -n "${temp_source_dir:-}" ]]
+  then
+    rm -rf "$temp_source_dir"
+  fi
+
+  return "$status"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]
