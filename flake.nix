@@ -102,7 +102,7 @@
                 bruvtab/mediator/chromium_mediator.json \
                 > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
 
-              ln -s \
+              cp \
                 $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json \
                 $out/etc/chromium/native-messaging-hosts/bruvtab_mediator.json
 
