@@ -281,16 +281,51 @@ class ChromeTabs extends BrowserTabs {
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
-    // Manifest V3: use chrome.scripting.executeScript instead of tabs.executeScript
     this._browser.scripting.executeScript(
       {
         target: { tabId: tab_id },
         func: (code) => {
-          // Execute provided code string in the page context
-          // and return its result. This mirrors MV2 behavior where
-          // executeScript returned an array with a single result.
-          // eslint-disable-next-line no-eval
-          return eval(code);
+          const parseRegexLiteral = (literal) => {
+            const match = literal.match(/^\/((?:\\.|[^/])*)\/([a-z]*)$/);
+            if (!match) {
+              throw new Error(`Unsupported regex literal: ${literal}`);
+            }
+            return new RegExp(match[1], match[2]);
+          };
+
+          const parseStringLiteral = (literal) => JSON.parse(literal);
+
+          const parseReplaceCall = (source) => {
+            const match = source.match(/\.replace\((\/(?:\\.|[^/])*\/[a-z]*),\s*("[\s\S]*")\);?$/);
+            if (!match) {
+              throw new Error(`Unsupported replace script: ${source}`);
+            }
+            return [parseRegexLiteral(match[1]), parseStringLiteral(match[2])];
+          };
+
+          const documentElement = document.documentElement;
+          const text = documentElement ? (documentElement.innerText || '') : '';
+          const html = documentElement ? (documentElement.innerHTML || '') : '';
+
+          const wordsMatch = code.match(/innerText\.match\((\/(?:\\.|[^/])*\/[a-z]*)\)\]\.sort\(\)\.join\(("[\s\S]*")\);?$/);
+          if (wordsMatch) {
+            const matchRegex = parseRegexLiteral(wordsMatch[1]);
+            const joinWith = parseStringLiteral(wordsMatch[2]);
+            const words = text.match(matchRegex) || [];
+            return [...new Set(words)].sort().join(joinWith);
+          }
+
+          if (code.includes('document.documentElement.innerText.replace(')) {
+            const [delimiterRegex, replaceWith] = parseReplaceCall(code);
+            return text.replace(delimiterRegex, replaceWith);
+          }
+
+          if (code.includes('document.documentElement.innerHTML.replace(')) {
+            const [delimiterRegex, replaceWith] = parseReplaceCall(code);
+            return html.replace(delimiterRegex, replaceWith);
+          }
+
+          throw new Error(`Unsupported script: ${code}`);
         },
         args: [script]
       },

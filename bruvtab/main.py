@@ -139,6 +139,24 @@ def parse_prefix_and_window_id(prefix_window_id):
     return prefix, window_id
 
 
+def is_prefix_window_id(value):
+    return re.fullmatch(r'[A-Za-z](?:\.(?:\d+)?)?', value) is not None
+
+
+def parse_open_arguments(values):
+    prefix_window_id = None
+    urls = values
+    if values and is_prefix_window_id(values[0]):
+        prefix_window_id = values[0]
+        urls = values[1:]
+
+    if prefix_window_id is None:
+        return None, None, urls
+
+    prefix, window_id = parse_prefix_and_window_id(prefix_window_id)
+    return prefix, window_id, urls
+
+
 def print_json(data):
     if stdout_supports_rich():
         stdout_console.print(JSON(json.dumps(data)))
@@ -269,9 +287,10 @@ def open_urls(args):
 
     where urls.txt contains one url per line (not JSON)
     """
-    prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
-    urls = read_stdin_lines()
-    bruvtab_logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
+    prefix, window_id, urls = parse_open_arguments(args.open_args)
+    if not urls:
+        urls = read_stdin_lines()
+    bruvtab_logger.info('Opening URLs, prefix "%s", window_id "%s": %s',
                        prefix, window_id, urls)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     ids = api.open_urls(urls, prefix, window_id)
@@ -567,6 +586,7 @@ def parse_args(args):
 
     parser_list_tabs = subparsers.add_parser(
         'list',
+        aliases=['tabs'],
         help='''
         list available tabs. The command will request all available clients
         (browser plugins, mediators), and will display browser tabs in the
@@ -723,15 +743,15 @@ def parse_args(args):
     parser_open_urls = subparsers.add_parser(
         'open',
         help='''
-        open URLs from the stdin (one URL per line). One positional argument is
-        required: <prefix>.<window_id> OR <client>. If window_id is not
-        specified, URL will be opened in the active window of the specifed
-        client. If window_id is 0, URLs will be opened in new window.
+        open URLs from arguments or stdin (one URL per line). The optional
+        first argument is <prefix>.<window_id> OR <client>. If window_id is
+        not specified, URLs will be opened in the active window of the
+        specified client. If no client is specified, the first ready client is
+        used. If window_id is 0, URLs will be opened in new window.
         ''')
     parser_open_urls.set_defaults(func=open_urls)
-    parser_open_urls.add_argument(
-        'prefix_window_id', type=str,
-        help='Client prefix and (optionally) window id, e.g. b.20')
+    parser_open_urls.add_argument('open_args', type=str, nargs='*',
+                                  help='Optional client/window followed by URLs')
 
     parser_navigate_urls = subparsers.add_parser(
         'navigate',

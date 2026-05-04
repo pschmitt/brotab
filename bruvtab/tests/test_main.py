@@ -336,6 +336,36 @@ class TestIndex(WithMediator):
 
 
 class TestOpen(WithMediator):
+    def test_one_url_without_client_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['open', 'url1'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'open_urls', 'urls': ['url1']},
+        ]
+        assert output == [b'a.1.1\n']
+
+    def test_one_url_with_client_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['open', 'a.', 'url1'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'open_urls', 'urls': ['url1']},
+        ]
+        assert output == [b'a.1.1\n']
+
     def test_three_urls_ok(self):
         self.mediator.transport.received_extend([
             'mocked',
@@ -352,3 +382,20 @@ class TestOpen(WithMediator):
             {'name': 'open_urls', 'urls': ['url1', 'url2', 'url3'], 'window_id': 1},
         ]
         assert output == [b'a.1.1\na.1.2\na.1.3\n']
+
+
+class TestList(WithMediator):
+    def test_tabs_alias_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1\ttitle\turl'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.sys.stdout.buffer.write', output.append):
+            self._run_commands(['tabs'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+        ]
+        assert output[-1:] == [b'a.1.1\ttitle\turl\n']

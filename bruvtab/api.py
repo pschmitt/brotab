@@ -421,8 +421,12 @@ class MultipleMediatorsAPI(object):
     def open_urls(self, urls, prefix, window_id=None):
         assert len(self._apis) > 0, \
             'There should be at least one client connected: %s' % self._apis
-        # client = self._apis[0]
-        client = self._get_api_by_prefix(prefix)
+        if prefix is None:
+            assert len(self.ready_apis) > 0, \
+                'There should be at least one ready client connected: %s' % self._apis
+            client = self.ready_apis[0]
+        else:
+            client = self._get_api_by_prefix(prefix)
         return client.open_urls(urls, window_id)
 
     def get_words(self, tab_ids, match_regex, join_with):
