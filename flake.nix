@@ -7,7 +7,7 @@
 
   outputs = { self, nixpkgs }:
     let
-      version = "2.0.4";
+      version = "2.0.5";
       chromeCrxVersion = version;
       chromeCrxHash = "sha256-zZhawxIl5CbPrMRllgs8FNK0JWEVZ8X080v6b4MTxTE=";
       firefoxXpiVersion = version;

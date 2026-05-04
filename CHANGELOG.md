@@ -1,3 +1,7 @@
+2.0.5 (2026-05-04)
+
+* Raise Firefox minimum version to 142.0 for AMO data collection permission metadata
+
 2.0.4 (2026-05-04)
 
 * Publish self-distributed Firefox XPIs with the plain `bruvtab-firefox-$VERSION.xpi` release asset name
