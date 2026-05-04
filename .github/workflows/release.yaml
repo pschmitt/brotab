@@ -104,7 +104,7 @@ jobs:
           ./scripts/sign-firefox-addon.sh \
             --channel listed \
             --amo-metadata "$PWD/assets/firefox/amo-metadata.json" \
-            --approval-timeout 18000000 \
+            --approval-timeout 0 \
             --artifacts-dir "$PWD/dist/firefox-amo-signed"
 
       - name: Sign Firefox extension for GitHub release
@@ -124,14 +124,7 @@ jobs:
           SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
         run: |
           mkdir -p dist/browser
-          amo_xpi="$(find dist/firefox-amo-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
           self_xpi="$(find dist/firefox-self-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
-
-          if [[ -z "${amo_xpi:-}" ]]
-          then
-            echo "AMO Firefox XPI not found" >&2
-            exit 2
-          fi
 
           if [[ -z "${self_xpi:-}" ]]
           then
@@ -139,7 +132,12 @@ jobs:
             exit 2
           fi
 
-          cp "$amo_xpi" "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
+          amo_xpi="$(find dist/firefox-amo-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
+          if [[ -n "${amo_xpi:-}" ]]
+          then
+            cp "$amo_xpi" "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
+          fi
+
           cp "$self_xpi" "dist/browser/bruvtab-firefox-self-${SELF_FIREFOX_VERSION}.xpi"
           cp "$self_xpi" "dist/browser/bruvtab-firefox-${VERSION}.xpi"
 
@@ -150,7 +148,6 @@ jobs:
         run: |
           test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
           test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
-          test -f "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
           test -f "dist/browser/bruvtab-firefox-self-${SELF_FIREFOX_VERSION}.xpi"
 
       - name: Upload browser artifacts
