@@ -138,7 +138,7 @@ jobs:
             cp "$amo_xpi" "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
           fi
 
-          cp "$self_xpi" "dist/browser/bruvtab-firefox-self-${SELF_FIREFOX_VERSION}.xpi"
+          cp "$self_xpi" "dist/browser/bruvtab-firefox-${VERSION}.xpi"
 
       - name: Verify browser release assets
         shell: bash
@@ -146,7 +146,7 @@ jobs:
           SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
         run: |
           test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
-          test -f "dist/browser/bruvtab-firefox-self-${SELF_FIREFOX_VERSION}.xpi"
+          test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
 
       - name: Upload browser artifacts
         uses: actions/upload-artifact@v4

@@ -1,3 +1,7 @@
+2.0.4 (2026-05-04)
+
+* Publish self-distributed Firefox XPIs with the plain `bruvtab-firefox-$VERSION.xpi` release asset name
+
 2.0.3 (2026-05-04)
 
 * Publish listed AMO releases and separate self-distributed Firefox XPIs
