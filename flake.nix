@@ -11,6 +11,7 @@
       chromeCrxVersion = version;
       chromeCrxHash = "sha256-i+MFh3sqdw6m+2hqW8kozutkAO0oHAgLFLdZIRxjhmU=";
       firefoxXpiVersion = version;
+      firefoxSelfXpiVersion = "${version}.1";
       firefoxXpiHash = "sha256-VXE2NR/g1/95PK70xGPA25qqqpmuF/nWSLKB5h9qlXw=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       firefoxAddonId = "bruvtab_mediator@example.org";
@@ -49,7 +50,7 @@
             hash = chromeCrxHash;
           };
           firefoxXpiAsset = pkgs.fetchurl {
-            url = "https://github.com/pschmitt/bruvtab/releases/download/${firefoxXpiVersion}/bruvtab-firefox-${firefoxXpiVersion}.xpi";
+            url = "https://github.com/pschmitt/bruvtab/releases/download/${firefoxXpiVersion}/bruvtab-firefox-self-${firefoxSelfXpiVersion}.xpi";
             hash = firefoxXpiHash;
           };
           chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-${chromeCrxVersion}" { } ''
