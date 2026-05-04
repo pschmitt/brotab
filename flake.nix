@@ -10,6 +10,8 @@
       version = "2.0.2";
       chromeCrxVersion = version;
       chromeCrxHash = "sha256-vciYaKeCjgkB2MQeD6tCXd7vTGW5DWPTitlzEmfQkYA=";
+      firefoxXpiVersion = version;
+      firefoxXpiHash = "sha256-y84vS5L9W/Jk8GInwgngMn+Hr1aJLC3kW2fseefCh9Q=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       firefoxAddonId = "bruvtab_mediator@example.org";
       firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
@@ -45,6 +47,10 @@
           chromeCrxAsset = pkgs.fetchurl {
             url = "https://github.com/pschmitt/bruvtab/releases/download/${chromeCrxVersion}/bruvtab-chrome-${chromeCrxVersion}.crx";
             hash = chromeCrxHash;
+          };
+          firefoxXpiAsset = pkgs.fetchurl {
+            url = "https://github.com/pschmitt/bruvtab/releases/download/${firefoxXpiVersion}/bruvtab-firefox-${firefoxXpiVersion}.xpi";
+            hash = firefoxXpiHash;
           };
           chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-${chromeCrxVersion}" { } ''
               mkdir -p $out
@@ -109,7 +115,6 @@
           firefoxXpi =
             pkgs.runCommand "bruvtab-firefox-xpi-${version}"
               {
-                nativeBuildInputs = [ pkgs.zip ];
                 passthru = {
                   addonId = firefoxAddonId;
                   extid = firefoxAddonId;
@@ -119,11 +124,7 @@
                 addon_id='${firefoxAddonId}'
 
                 mkdir -p "$out/share/mozilla/extensions/${firefoxAppId}"
-
-                (
-                  cd "${self}/bruvtab/extension/firefox"
-                  find . -type f | LC_ALL=C sort | zip -X -q "$out/$addon_id.xpi" -@
-                )
+                cp ${firefoxXpiAsset} "$out/$addon_id.xpi"
 
                 ln -s "$out/$addon_id.xpi" \
                   "$out/share/mozilla/extensions/${firefoxAppId}/$addon_id.xpi"
