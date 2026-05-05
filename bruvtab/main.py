@@ -219,6 +219,49 @@ def filter_apis_by_tab_id(apis, tab_id):
     return [api for api in apis if api._prefix == prefix]
 
 
+def is_tab_id(value):
+    return re.fullmatch(r'[A-Za-z]\.\d+\.\d+', value) is not None
+
+
+def tab_id_from_line(line):
+    return line.split('\t', 1)[0]
+
+
+def tab_matches_selector(line, selector):
+    parts = line.split('\t', 2)
+    if len(parts) < 3:
+        return False
+    _tab_id, title, url = parts
+    selector = selector.lower()
+    return selector in title.lower() or selector in url.lower()
+
+
+def resolve_tab_selector(apis, selector):
+    if is_tab_id(selector):
+        return selector
+
+    tabs = MultipleMediatorsAPI(apis).list_tabs([])
+    matches = [tab for tab in tabs if tab_matches_selector(tab, selector)]
+    if not matches:
+        print_error('No tabs match "%s"' % selector)
+        return None
+
+    if len(matches) > 1:
+        print_error('Multiple tabs match "%s"; using %s' % (selector, tab_id_from_line(matches[0])))
+
+    return tab_id_from_line(matches[0])
+
+
+def resolve_tab_selectors(apis, selectors):
+    tab_ids = []
+    for selector in selectors:
+        tab_id = resolve_tab_selector(apis, selector)
+        if tab_id is None:
+            return None
+        tab_ids.append(tab_id)
+    return tab_ids
+
+
 def print_json(data):
     if stdout_supports_rich():
         stdout_console.print(JSON.from_data(data))
@@ -303,10 +346,14 @@ def show_active_tabs(args):
 def screenshot(args):
     bruvtab_logger.info('Getting screenshot: %s', args)
     apis = create_clients_from_args(args)
-    if args.tab_id is not None:
-        apis = filter_apis_by_tab_id(apis, args.tab_id)
+    if args.tab is not None:
+        tab_id = resolve_tab_selector(apis, args.tab)
+        if tab_id is None:
+            return 1
+        args.tab_id = tab_id
+        apis = filter_apis_by_tab_id(apis, tab_id)
         if not apis:
-            print_error('No client available for tab ID %s' % args.tab_id)
+            print_error('No client available for tab ID %s' % tab_id)
             return 1
     for api in apis:
         try:
@@ -438,15 +485,19 @@ def get_words(args):
     start = time.time()
     bruvtab_logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
                        args.tab_ids, args.match_regex, args.join_with)
-    api = MultipleMediatorsAPI(create_clients_from_args(args))
-    words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
+    apis = create_clients_from_args(args)
+    tab_ids = resolve_tab_selectors(apis, args.tab_ids) if args.tab_ids else []
+    if tab_ids is None:
+        return 1
+    api = MultipleMediatorsAPI(apis)
+    words = api.get_words(tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))
     delta = time.time() - start
     # print('DELTA TOTAL', delta, file=sys.stderr)
 
 
 def get_text_or_html(getter, args):
-    tabs = getter(args.tab_ids, args.delimiter_regex, args.replace_with)
+    tabs = getter(args.resolved_tab_ids, args.delimiter_regex, args.replace_with)
 
     if args.cleanup:
         pattern = re.compile(r'\s+')
@@ -467,13 +518,21 @@ def get_text_or_html(getter, args):
 
 def get_text(args):
     bruvtab_logger.info('Get text from tabs')
-    api = MultipleMediatorsAPI(create_clients_from_args(args))
+    apis = create_clients_from_args(args)
+    args.resolved_tab_ids = resolve_tab_selectors(apis, args.tab_ids) if args.tab_ids else []
+    if args.resolved_tab_ids is None:
+        return 1
+    api = MultipleMediatorsAPI(apis)
     return get_text_or_html(api.get_text, args)
 
 
 def get_html(args):
     bruvtab_logger.info('Get html from tabs')
-    api = MultipleMediatorsAPI(create_clients_from_args(args))
+    apis = create_clients_from_args(args)
+    args.resolved_tab_ids = resolve_tab_selectors(apis, args.tab_ids) if args.tab_ids else []
+    if args.resolved_tab_ids is None:
+        return 1
+    api = MultipleMediatorsAPI(apis)
     return get_text_or_html(api.get_html, args)
 
 
@@ -770,8 +829,8 @@ def parse_args(args):
         return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api). Optionally target a specific tab ID.
         ''')
     parser_screenshot.set_defaults(func=screenshot)
-    parser_screenshot.add_argument('tab_id', type=str, nargs='?',
-                                   help='Optional tab ID to capture')
+    parser_screenshot.add_argument('tab', type=str, nargs='?',
+                                   help='Optional tab ID, title, or URL fragment to capture')
     parser_screenshot.add_argument('--raw', action='store_true', default=False,
                                    help='Output raw image bytes to stdout')
 

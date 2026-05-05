@@ -360,6 +360,31 @@ class TestHtml(WithMediator):
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
 
+    def test_html_with_url_match_targets_first_match(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [
+                '1.2\tGoogle Search\thttps://google.com/search',
+                '1.3\tOther\thttps://example.com',
+            ],
+            ['1.2\tGoogle Search\thttps://google.com/search\t<body>google</body>'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['html', 'google.com'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+            {
+                'delimiter_regex': '/\\n|\\r|\\t/g',
+                'name': 'get_html',
+                'replace_with': '" "',
+                'tab_id': 2,
+            },
+        ]
+        assert output == [b'a.1.2\tGoogle Search\thttps://google.com/search\t<body>google</body>\n']
+
 
 class TestWords(WithMediator):
     def test_words_with_tab_id_ok(self):
@@ -550,6 +575,30 @@ class TestScreenshot(WithMediator):
         assert result == 0
         assert output[-1:] == [b'png']
 
+    def test_selector_targets_first_matching_tab_and_warns_on_multiple_matches(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [
+                '1.2\tGoogle Search\thttps://google.com/search',
+                '1.3\tGoogle Mail\thttps://mail.google.com',
+            ],
+            {'tab': 2, 'window': 1, 'data': 'data:image/png;base64,cG5n'},
+        ])
+
+        output = []
+        with patch('bruvtab.main.sys.stdout.buffer.write', output.append):
+            with patch('bruvtab.main.print_error') as print_error:
+                result = self._run_commands(['screenshot', 'google', '--raw'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+            {'name': 'get_screenshot', 'tab_id': 2},
+        ]
+        print_error.assert_called_once_with('Multiple tabs match "google"; using a.1.2')
+        assert result == 0
+        assert output[-1:] == [b'png']
+
 
 class TestJsonOutput(TestCase):
     def test_print_json_plain_pretty(self):
@@ -597,7 +646,7 @@ class TestJsonOutput(TestCase):
     def test_parse_args_accepts_screenshot_tab_id(self):
         args = parse_args(['screenshot', 'a.1.2'])
 
-        assert args.tab_id == 'a.1.2'
+        assert args.tab == 'a.1.2'
 
 
 class TestRichTableOutput(WithMediator):
