@@ -294,6 +294,8 @@ def list_tabs(args):
     bruvtab_logger.info('Listing tabs')
     api = MultipleMediatorsAPI(create_clients_from_args(args))
     tabs = api.list_tabs([])
+    for selector in args.selectors:
+        tabs = [tab for tab in tabs if tab_matches_selector(tab, selector)]
     if args.json:
         tabs_json = [
             {"id": x[0], "title": x[1], "url": x[2]}
@@ -791,6 +793,8 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
         ''')
     parser_list_tabs.set_defaults(func=list_tabs)
+    parser_list_tabs.add_argument('selectors', type=str, nargs='*',
+                                  help='Optional title or URL fragments to match')
 
     parser_close_tabs = subparsers.add_parser(
         'close',

@@ -539,6 +539,54 @@ class TestList(WithMediator):
         ]
         assert output[-1:] == [b'a.1.1\ttitle\turl\n']
 
+    def test_tabs_filters_by_title_or_url(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [
+                '1.1\tGoogle Search\thttps://google.com/search',
+                '1.2\tExample\thttps://example.com',
+                '1.3\tMail\thttps://mail.google.com',
+            ],
+        ])
+
+        output = []
+        with patch('bruvtab.main.sys.stdout.buffer.write', output.append):
+            self._run_commands(['tabs', 'google.com'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+        ]
+        assert output[-1:] == [
+            b'a.1.1\tGoogle Search\thttps://google.com/search\n'
+            b'a.1.3\tMail\thttps://mail.google.com\n'
+        ]
+
+    def test_tabs_json_filters_by_title_or_url(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [
+                '1.1\tGoogle Search\thttps://google.com/search',
+                '1.2\tExample\thttps://example.com',
+            ],
+        ])
+
+        with patch('bruvtab.main.stdout_supports_rich', return_value=False):
+            with patch('builtins.print') as mocked:
+                self._run_commands(['tabs', 'google', '--json'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'list_tabs'},
+        ]
+        mocked.assert_called_once_with(
+            '[\n'
+            '  {\n'
+            '    "id": "a.1.1",\n'
+            '    "title": "Google Search",\n'
+            '    "url": "https://google.com/search"\n'
+            '  }\n'
+            ']'
+        )
+
 
 class TestScreenshot(WithMediator):
     def test_raw_outputs_image_bytes(self):
