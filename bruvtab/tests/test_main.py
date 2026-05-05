@@ -62,10 +62,17 @@ class MockedLoggingTransport(Transport):
 
 class MockedMediator:
     def __init__(self, prefix='a', port=None, remote_api=None):
-        self.port = get_available_tcp_port() if port is None else port
         self.transport = MockedLoggingTransport()
         self.remote_api = default_remote_api(self.transport) if remote_api is None else remote_api
-        self.server = MediatorHttpServer(http_iface(), self.port, self.remote_api, 0.050)
+        self.port = get_available_tcp_port() if port is None else port
+        for _attempt in range(10):
+            try:
+                self.server = MediatorHttpServer(http_iface(), self.port, self.remote_api, 0.050)
+                break
+            except OSError:
+                self.port = get_available_tcp_port(start=self.port + 1)
+        else:
+            raise RuntimeError('Could not allocate a port for MockedMediator')
         self.thread = self.server.run.in_thread()
         self.transport.received_extend(['mocked'])
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
@@ -118,13 +125,13 @@ class DummyBrowserRemoteAPI:
     def get_words(self, tab_id, match_regex, join_with):
         return ['a', 'b']
 
-    def get_text(self, delimiter_regex, replace_with):
+    def get_text(self, delimiter_regex, replace_with, tab_id=None):
         return ['1.1\ttitle\turl\tbody']
 
-    def get_html(self, delimiter_regex, replace_with):
+    def get_html(self, delimiter_regex, replace_with, tab_id=None):
         return ['1.1\ttitle\turl\t<body>some body</body>']
 
-    def get_screenshot(self):
+    def get_screenshot(self, tab_id=None):
         return {'tab': 1, 'window': 1, 'data': 'data:image/png;base64,'}
 
     def get_browser(self):
@@ -261,6 +268,26 @@ class TestText(WithMediator):
     def test_text_with_tab_id_ok(self):
         self.mediator.transport.received_extend([
             'mocked',
+            ['1.2\ttitle\turl\tbody'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['text', 'a.1.2'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {
+                'delimiter_regex': '/\\n|\\r|\\t/g',
+                'name': 'get_text',
+                'replace_with': '" "',
+                'tab_id': 2,
+            },
+        ]
+        assert output == [b'a.1.2\ttitle\turl\tbody\n']
+
+    def test_text_with_multiple_tab_ids_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
             [
                 '1.1\ttitle\turl\tbody',
                 '1.2\ttitle\turl\tbody',
@@ -297,6 +324,26 @@ class TestHtml(WithMediator):
     def test_html_with_tab_id_ok(self):
         self.mediator.transport.received_extend([
             'mocked',
+            ['1.2\ttitle\turl\tbody'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['html', 'a.1.2'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {
+                'delimiter_regex': '/\\n|\\r|\\t/g',
+                'name': 'get_html',
+                'replace_with': '" "',
+                'tab_id': 2,
+            },
+        ]
+        assert output == [b'a.1.2\ttitle\turl\tbody\n']
+
+    def test_html_with_multiple_tab_ids_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
             [
                 '1.1\ttitle\turl\tbody',
                 '1.2\ttitle\turl\tbody',
@@ -312,6 +359,28 @@ class TestHtml(WithMediator):
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_html', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
+
+
+class TestWords(WithMediator):
+    def test_words_with_tab_id_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['word-a', 'word-b'],
+        ])
+
+        with patch('builtins.print') as mocked:
+            self._run_commands(['words', 'a.1.2'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {
+                'join_with': '"\\n"',
+                'match_regex': '/\\w+/g',
+                'name': 'get_words',
+                'tab_id': 2,
+            },
+        ]
+        mocked.assert_called_once_with('word-a\nword-b')
 
 
 class TestIndex(WithMediator):
@@ -464,6 +533,23 @@ class TestScreenshot(WithMediator):
         assert result == 0
         assert output[-1:] == [b'png']
 
+    def test_tab_id_targets_specific_tab(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            {'tab': 2, 'window': 1, 'data': 'data:image/png;base64,cG5n'},
+        ])
+
+        output = []
+        with patch('bruvtab.main.sys.stdout.buffer.write', output.append):
+            result = self._run_commands(['screenshot', 'a.1.2', '--raw'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'get_screenshot', 'tab_id': 2},
+        ]
+        assert result == 0
+        assert output[-1:] == [b'png']
+
 
 class TestJsonOutput(TestCase):
     def test_print_json_plain_pretty(self):
@@ -507,6 +593,11 @@ class TestJsonOutput(TestCase):
         args = parse_args(['screenshot', '--raw'])
 
         assert args.raw is True
+
+    def test_parse_args_accepts_screenshot_tab_id(self):
+        args = parse_args(['screenshot', 'a.1.2'])
+
+        assert args.tab_id == 'a.1.2'
 
 
 class TestRichTableOutput(WithMediator):

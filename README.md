@@ -45,7 +45,7 @@ Positional Arguments:
                         "<prefix>.<window_id>.<tab_id>"
     screenshot          return base64 screenshot in json object with keys: 'data' (base64 png),
                         'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api'
-                        (prefix of client api)
+                        (prefix of client api). Optionally target a specific tab ID.
     search              Search across your indexed tabs using sqlite fts5 plugin.
     query               Filter tabs using chrome.tabs api.
     index               Index the text from browser's tabs. Text is put into sqlite fts5 table.
@@ -70,10 +70,11 @@ Positional Arguments:
                         "properties":{"url":"https://google.com"}}]' | bruvtab update 2.
                         arguments, e.g.: bruvtab update -tabId b.1.862
                         -url="http://www.google.com" +muted
-    words               show sorted unique words from all active tabs of all clients. This is a
-                        helper for webcomplete plugin that helps complete words from the browser
-    text                show text from all tabs
-    html                show html from all tabs
+    words               show sorted unique words from all active tabs of all clients or from
+                        specified tabs. This is a helper for webcomplete plugin that helps
+                        complete words from the browser
+    text                show text from all tabs or from specified tabs
+    html                show html from all tabs or from specified tabs
     dup                 display reminder on how to show duplicate tabs using command-line tools
     windows             display available prefixes and window IDs, along with the number of tabs
                         in every window

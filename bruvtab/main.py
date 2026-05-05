@@ -213,6 +213,12 @@ def parse_open_arguments(values):
     return prefix, window_id, urls
 
 
+def filter_apis_by_tab_id(apis, tab_id):
+    prefix, _window_id, _tab_id = tab_id.split('.')
+    prefix += '.'
+    return [api for api in apis if api._prefix == prefix]
+
+
 def print_json(data):
     if stdout_supports_rich():
         stdout_console.print(JSON.from_data(data))
@@ -297,6 +303,11 @@ def show_active_tabs(args):
 def screenshot(args):
     bruvtab_logger.info('Getting screenshot: %s', args)
     apis = create_clients_from_args(args)
+    if args.tab_id is not None:
+        apis = filter_apis_by_tab_id(apis, args.tab_id)
+        if not apis:
+            print_error('No client available for tab ID %s' % args.tab_id)
+            return 1
     for api in apis:
         try:
             result = loads(api.get_screenshot(args))
@@ -435,9 +446,7 @@ def get_words(args):
 
 
 def get_text_or_html(getter, args):
-    tabs = getter([], args.delimiter_regex, args.replace_with)
-    re_match_tabs = re.compile('|'.join(['^%s\t' % tab for tab in args.tab_ids]))
-    tabs = [tab for tab in tabs if re_match_tabs.match(tab)]
+    tabs = getter(args.tab_ids, args.delimiter_regex, args.replace_with)
 
     if args.cleanup:
         pattern = re.compile(r'\s+')
@@ -758,9 +767,11 @@ def parse_args(args):
     parser_screenshot = subparsers.add_parser(
         'screenshot',
         help='''
-        return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api)
+        return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api). Optionally target a specific tab ID.
         ''')
     parser_screenshot.set_defaults(func=screenshot)
+    parser_screenshot.add_argument('tab_id', type=str, nargs='?',
+                                   help='Optional tab ID to capture')
     parser_screenshot.add_argument('--raw', action='store_true', default=False,
                                    help='Output raw image bytes to stdout')
 
@@ -947,7 +958,8 @@ def parse_args(args):
     parser_get_words = subparsers.add_parser(
         'words',
         help='''
-        show sorted unique words from all active tabs of all clients. This is
+        show sorted unique words from all active tabs of all clients or from
+        specified tabs. This is
         a helper for webcomplete plugin that helps complete words from the
         browser
         ''')
@@ -964,7 +976,7 @@ def parse_args(args):
     parser_get_text = subparsers.add_parser(
         'text',
         help='''
-        show text from all tabs
+        show text from all tabs or from specified tabs
         ''')
     parser_get_text.set_defaults(func=get_text)
     parser_get_text.add_argument('tab_ids', type=str, nargs='*',
@@ -984,7 +996,7 @@ def parse_args(args):
     parser_get_html = subparsers.add_parser(
         'html',
         help='''
-        show html from all tabs
+        show html from all tabs or from specified tabs
         ''')
     parser_get_html.set_defaults(func=get_html)
     parser_get_html.add_argument('tab_ids', type=str, nargs='*',

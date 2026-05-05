@@ -163,7 +163,15 @@ class SingleMediatorAPI(object):
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
     def get_screenshot(self, args):
-        return self._get('/get_screenshot')
+        tab_id = getattr(args, 'tab_id', None)
+        if tab_id is None:
+            return self._get('/get_screenshot')
+
+        prefix, _window_id, local_tab_id = split_prefixed_tab_id(tab_id)
+        if prefix != self._prefix:
+            return dumps({'error': 'Tab %s is not available on client %s' % (tab_id, self._prefix[:-1])})
+
+        return self._get('/get_screenshot?tab_id=%s' % local_tab_id)
 
     def query_tabs(self, args):
         query = args
@@ -269,21 +277,35 @@ class SingleMediatorAPI(object):
         return sorted(list(words))
 
     def get_text_or_html(self, command, args, delimiter_regex, replace_with):
-        num_tabs = MAX_NUMBER_OF_TABS
-        if len(args) > 0:
-            num_tabs = int(args[0])
+        target_tab_id = None
+        matching_tab_ids = set(self.filter_tabs(args)) if args else set()
 
-        result = self._get(
-            '/%s?delimiter_regex=%s&replace_with=%s' % (
-                command,
-                encode_query(delimiter_regex),
-                encode_query(replace_with),
-            ),
+        if len(args) == 1:
+            prefix, _window_id, local_tab_id = split_prefixed_tab_id(args[0])
+            if prefix != self._prefix:
+                return []
+            target_tab_id = local_tab_id
+
+        query = '/%s?delimiter_regex=%s&replace_with=%s' % (
+            command,
+            encode_query(delimiter_regex),
+            encode_query(replace_with),
         )
+        if target_tab_id is not None:
+            query += '&tab_id=%s' % target_tab_id
+
+        result = self._get(query)
         lines = []
-        for line in result.splitlines()[:num_tabs]:
+        for line in result.splitlines()[:MAX_NUMBER_OF_TABS]:
             lines.append(line)
-        return self.prefix_tabs(lines)
+
+        prefixed_lines = self.prefix_tabs(lines)
+        if matching_tab_ids:
+            prefixed_lines = [
+                line for line in prefixed_lines
+                if line.split('\t', 1)[0] in matching_tab_ids
+            ]
+        return prefixed_lines
 
     def get_text(self, args, delimiter_regex, replace_with):
         return self.get_text_or_html('get_text', args, delimiter_regex, replace_with)
@@ -314,6 +336,11 @@ def api_must_ready(port: int, browser: str,
 def int_tab_id(tab_id: str) -> int:
     """Convert from str(b.20.123) to int(123)"""
     return int(tab_id.split('.')[-1])
+
+
+def split_prefixed_tab_id(tab_id: str):
+    prefix, window_id, local_tab_id = tab_id.split('.')
+    return prefix + '.', window_id, local_tab_id
 
 
 class MultipleMediatorsAPI(object):

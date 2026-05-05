@@ -97,9 +97,11 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_screenshot(self) -> str:
+    def get_screenshot(self, tab_id: int = None) -> str:
         mediator_logger.info('getting screemsjpt')
         command = {'name': 'get_screenshot'}
+        if tab_id is not None:
+            command['tab_id'] = tab_id
         self._transport.send(command)
         return self._transport.recv()
 
@@ -114,7 +116,7 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_text(self, delimiter_regex: str, replace_with: str):
+    def get_text(self, delimiter_regex: str, replace_with: str, tab_id: int = None):
         mediator_logger.info('getting text, delimiter_regex=%s, replace_with=%s',
                              delimiter_regex, replace_with)
         command = {
@@ -122,10 +124,12 @@ class BrowserRemoteAPI:
             'delimiter_regex': delimiter_regex,
             'replace_with': replace_with,
         }
+        if tab_id is not None:
+            command['tab_id'] = tab_id
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_html(self, delimiter_regex: str, replace_with: str):
+    def get_html(self, delimiter_regex: str, replace_with: str, tab_id: int = None):
         mediator_logger.info('getting html, delimiter_regex=%s, replace_with=%s',
                              delimiter_regex, replace_with)
         command = {
@@ -133,6 +137,8 @@ class BrowserRemoteAPI:
             'delimiter_regex': delimiter_regex,
             'replace_with': replace_with,
         }
+        if tab_id is not None:
+            command['tab_id'] = tab_id
         self._transport.send(command)
         return self._transport.recv()
 

@@ -54,6 +54,14 @@ class BrowserTabs {
     throw new Error('getActiveScreenshot is not implemented');
   }
 
+  focusWindow(windowId, onSuccess, onError) {
+    throw new Error('focusWindow is not implemented');
+  }
+
+  captureVisible(windowId, tabId, onSuccess, onError) {
+    throw new Error('captureVisible is not implemented');
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
@@ -149,6 +157,24 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
+  focusWindow(windowId, onSuccess, onError) {
+    this._browser.windows.update(windowId, { focused: true }).then(
+      onSuccess,
+      (error) => onError(error)
+    );
+  }
+
+  captureVisible(windowId, tabId, onSuccess, onError) {
+    this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }).then(
+      (data) => onSuccess({
+        tab: tabId,
+        window: windowId,
+        data: data
+      }),
+      (error) => onError(error)
+    );
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     this._browser.tabs.executeScript(tab_id, {code: script}).then(
       (result) => onSuccess(result, payload),
@@ -234,6 +260,30 @@ class ChromeTabs extends BrowserTabs {
           window: tab.windowId,
           data: data
         });
+      });
+    });
+  }
+
+  focusWindow(windowId, onSuccess, onError) {
+    this._browser.windows.update(windowId, { focused: true }, () => {
+      if (this._browser.runtime.lastError) {
+        onError(this._browser.runtime.lastError.message);
+        return;
+      }
+      onSuccess();
+    });
+  }
+
+  captureVisible(windowId, tabId, onSuccess, onError) {
+    this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }, (data) => {
+      if (this._browser.runtime.lastError) {
+        onError(this._browser.runtime.lastError.message);
+        return;
+      }
+      onSuccess({
+        tab: tabId,
+        window: windowId,
+        data: data
       });
     });
   }
@@ -539,6 +589,60 @@ function getActiveScreenshot() {
   );
 }
 
+function restoreActiveTab(previousTab) {
+  if (!previousTab) {
+    return;
+  }
+
+  browserTabs.activate(previousTab.id, true);
+}
+
+function getScreenshot(tab_id) {
+  if (tab_id == null) {
+    getActiveScreenshot();
+    return;
+  }
+
+  browserTabs.list({}, (tabs) => {
+    const targetTab = tabs.find(tab => tab.id === tab_id);
+    if (!targetTab) {
+      port.postMessage({error: `No tab found for id ${tab_id}`});
+      return;
+    }
+
+    browserTabs.query({active: true, windowFocused: true}, (activeTabs) => {
+      const previousTab = activeTabs.length ? activeTabs[0] : null;
+
+      browserTabs.update(targetTab.id, {active: true},
+        () => browserTabs.focusWindow(
+          targetTab.windowId,
+          () => setTimeout(
+            () => browserTabs.captureVisible(
+              targetTab.windowId,
+              targetTab.id,
+              (data) => {
+                if (previousTab && previousTab.id !== targetTab.id) {
+                  restoreActiveTab(previousTab);
+                }
+                port.postMessage(data);
+              },
+              (error) => {
+                if (previousTab && previousTab.id !== targetTab.id) {
+                  restoreActiveTab(previousTab);
+                }
+                port.postMessage({error: `${error}`});
+              }
+            ),
+            75
+          ),
+          (error) => port.postMessage({error: `${error}`})
+        ),
+        (error) => port.postMessage({error: `${error}`})
+      );
+    });
+  });
+}
+
 function getWordsScript(match_regex, join_with) {
   return GET_WORDS_SCRIPT
     .replace('#match_regex#', match_regex)
@@ -668,10 +772,17 @@ function getTextOnListSuccess(tabs, delimiter_regex, replace_with) {
   getTextOrHtmlFromTabs(tabs, getTextScript, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
 }
 
+function getTextForTab(tab_id, delimiter_regex, replace_with) {
+  browserTabs.list({'discarded': false}, (tabs) => {
+    if (tab_id != null) {
+      tabs = tabs.filter(tab => tab.id === tab_id);
+    }
+    getTextOnListSuccess(tabs, delimiter_regex, replace_with);
+  });
+}
+
 function getText(delimiter_regex, replace_with) {
-  browserTabs.list({'discarded': false},
-      (tabs) => getTextOnListSuccess(tabs, delimiter_regex, replace_with),
-  );
+  getTextForTab(null, delimiter_regex, replace_with);
 }
 
 function getHtmlOnListSuccess(tabs, delimiter_regex, replace_with) {
@@ -680,10 +791,17 @@ function getHtmlOnListSuccess(tabs, delimiter_regex, replace_with) {
   getTextOrHtmlFromTabs(tabs, getHtmlScript, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
 }
 
+function getHtmlForTab(tab_id, delimiter_regex, replace_with) {
+  browserTabs.list({'discarded': false}, (tabs) => {
+    if (tab_id != null) {
+      tabs = tabs.filter(tab => tab.id === tab_id);
+    }
+    getHtmlOnListSuccess(tabs, delimiter_regex, replace_with);
+  });
+}
+
 function getHtml(delimiter_regex, replace_with) {
-  browserTabs.list({'discarded': false},
-      (tabs) => getHtmlOnListSuccess(tabs, delimiter_regex, replace_with),
-  );
+  getHtmlForTab(null, delimiter_regex, replace_with);
 }
 
 function getBrowserName() {
@@ -745,7 +863,7 @@ function handleNativeMessage(command) {
 
   else if (command['name'] == 'get_screenshot') {
     console.log('Getting visible screenshot');
-    getActiveScreenshot();
+    getScreenshot(command['tab_id']);
   }
 
   else if (command['name'] == 'get_words') {
@@ -755,12 +873,12 @@ function handleNativeMessage(command) {
 
   else if (command['name'] == 'get_text') {
     console.log('Getting texts from all tabs');
-    getText(command['delimiter_regex'], command['replace_with']);
+    getTextForTab(command['tab_id'], command['delimiter_regex'], command['replace_with']);
   }
 
   else if (command['name'] == 'get_html') {
     console.log('Getting HTML from all tabs');
-    getHtml(command['delimiter_regex'], command['replace_with']);
+    getHtmlForTab(command['tab_id'], command['delimiter_regex'], command['replace_with']);
   }
 
   else if (command['name'] == 'get_browser') {
