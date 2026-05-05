@@ -91,17 +91,12 @@ Options:
 
 ## Installation
 
-### Standard (pipx / pip)
+### Standard (`uv`)
 
 1. Install command-line client:
 
 ```bash
-# Preferred method
-pipx install bruvtab
-
-# Alternative
 uv tool install bruvtab
-pip install --user bruvtab
 ```
 
 2. Install native app manifests:
@@ -167,8 +162,8 @@ Using the published update manifest URL for auto-updates from GitHub releases:
 ### Setup
 
 ```bash
-# Editable install with dev dependencies
-pip install -e .[dev,test]
+# Setup virtual environment and install dependencies
+uv sync --all-extras
 ```
 
 ```bash
