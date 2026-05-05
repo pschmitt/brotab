@@ -3,14 +3,21 @@
   "description": "Control your browser's tabs from command line",
   "manifest_version": 3,
   "name": "BruvTab",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "background": {
     "service_worker": "background.js"
   },
   "icons": {
-      "128": "bruvtab-icon-128x128.png"
+    "128": "bruvtab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "windows", "activeTab", "scripting", "alarms"],
+  "permissions": [
+    "nativeMessaging",
+    "tabs",
+    "windows",
+    "activeTab",
+    "scripting",
+    "alarms"
+  ],
   "host_permissions": [
     "<all_urls>"
   ],
