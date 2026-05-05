@@ -745,6 +745,22 @@ class TestJsonOutput(TestCase):
         assert next(action for action in subparsers.choices['close']._actions if action.dest == 'tab_ids').completer == complete_tab_ids
         assert next(action for action in subparsers.choices['new']._actions if action.dest == 'prefix_window_id').completer == complete_client_or_window
 
+    def test_parser_exposes_global_options_on_subcommands_for_completion(self):
+        parser = build_parser()
+        subparsers = next(action for action in parser._actions if getattr(action, 'choices', None))
+        list_parser = subparsers.choices['list']
+
+        option_strings = {
+            option
+            for action in list_parser._actions
+            for option in action.option_strings
+        }
+
+        assert '--json' in option_strings
+        assert '--firefox' in option_strings
+        assert '--chrome' in option_strings
+        assert next(action for action in list_parser._actions if action.dest == 'client_selector').completer == complete_clients
+
 
 class TestRichTableOutput(WithMediator):
     def _render_output(self, commands):

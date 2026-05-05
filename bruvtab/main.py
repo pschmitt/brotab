@@ -55,7 +55,7 @@ import sys
 import time
 import argcomplete
 from base64 import b64decode
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from importlib import resources
 from functools import partial
 from itertools import groupby
@@ -853,74 +853,69 @@ def normalize_global_args(args):
     return global_args + remaining_args
 
 
+def add_global_arguments(parser, default=None):
+    parser.add_argument('--target', dest='target_hosts', default=default,
+                        help='Target hosts IP:Port')
+    parser_client = parser.add_argument('--client', '--browser', dest='client_selector', default=default,
+                                        help='Target client prefix or browser name')
+    parser.add_argument('--firefox', dest='client_selector', action='store_const', const='firefox',
+                        default=default, help='Target Firefox clients')
+    parser.add_argument('--chrome', dest='client_selector', action='store_const', const='chrome',
+                        default=default, help='Target Chrome clients')
+    parser.add_argument('--chromium', dest='client_selector', action='store_const', const='chromium',
+                        default=default, help='Target Chromium clients')
+    parser.add_argument('--brave', dest='client_selector', action='store_const', const='brave',
+                        default=default, help='Target Brave clients')
+    parser.add_argument('--json', action='store_true', default=False if default is None else default,
+                        help='Pretty JSON output (colored on terminals)')
+    return parser_client
+
+
 def build_parser():
     parser = ArgumentParser(
         formatter_class=make_help_formatter,
-        description='''
-        bruvtab (bruvtab = Browser Tabs) is a command-line tool that helps you manage
-        browser tabs. It can help you list, close, reorder, open and activate
-        your tabs.
-        ''')
+        description='bruvtab (bruvtab = Browser Tabs) is a command-line tool that helps you manage '
+                    'browser tabs. It can help you list, close, reorder, open and activate '
+                    'your tabs.')
 
-    parser.add_argument('--target', dest='target_hosts', default=None,
-                        help='Target hosts IP:Port')
-    parser_client = parser.add_argument('--client', '--browser', dest='client_selector', default=None,
-                                        help='Target client prefix or browser name')
-    parser.add_argument('--firefox', dest='client_selector', action='store_const', const='firefox',
-                        help='Target Firefox clients')
-    parser.add_argument('--chrome', dest='client_selector', action='store_const', const='chrome',
-                        help='Target Chrome clients')
-    parser.add_argument('--chromium', dest='client_selector', action='store_const', const='chromium',
-                        help='Target Chromium clients')
-    parser.add_argument('--brave', dest='client_selector', action='store_const', const='brave',
-                        help='Target Brave clients')
-    parser.add_argument('--json', action='store_true', default=False,
-                        help='Pretty JSON output (colored on terminals)')
+    parser_client = add_global_arguments(parser)
 
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(dest='command')
     parser.set_defaults(func=partial(no_command, parser))
 
     parser_move_tabs = subparsers.add_parser(
         'move',
-        help='''
-        move tabs around. This command lists available tabs and runs
-        the editor. In the editor you can 1) reorder tabs -- tabs will
-        be moved in the browser 2) delete tabs -- tabs will be closed
-        3) change window ID of the tabs -- tabs will be moved to
-        specified windows
-        ''')
+        help='Move tabs around. This command lists available tabs and runs '
+             'the editor. In the editor you can 1) reorder tabs -- tabs will '
+             'be moved in the browser 2) delete tabs -- tabs will be closed '
+             '3) change window ID of the tabs -- tabs will be moved to '
+             'specified windows')
     parser_move_tabs.set_defaults(func=move_tabs)
 
     parser_list_tabs = subparsers.add_parser(
         'list',
         aliases=['tabs'],
-        help='''
-        list available tabs. The command will request all available clients
-        (browser plugins, mediators), and will display browser tabs in the
-        following format:
-        "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
-        ''')
+        help='List available tabs. The command will request all available clients '
+             '(browser plugins, mediators), and will display browser tabs in the '
+             'following format: '
+             '"<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"')
     parser_list_tabs.set_defaults(func=list_tabs)
     parser_list_tabs.add_argument('selectors', type=str, nargs='*',
                                   help='Optional title or URL fragments to match')
 
     parser_close_tabs = subparsers.add_parser(
         'close',
-        help='''
-        close specified tab IDs. Tab IDs should be in the following format:
-        "<prefix>.<window_id>.<tab_id>". You can use "list" command to obtain
-        tab IDs (first column)
-        ''')
+        help='Close specified tab IDs. Tab IDs should be in the following format: '
+             '"<prefix>.<window_id>.<tab_id>". You can use "list" command to obtain '
+             'tab IDs (first column)')
     parser_close_tabs.set_defaults(func=close_tabs)
     parser_close_tabs_ids = parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
                                                            help='Tab IDs to close')
 
     parser_activate_tab = subparsers.add_parser(
         'activate',
-        help='''
-        activate given tab ID. Tab ID should be in the following format:
-        "<prefix>.<window_id>.<tab_id>"
-        ''')
+        help='Activate given tab ID. Tab ID should be in the following format: '
+             '"<prefix>.<window_id>.<tab_id>"')
     parser_activate_tab.set_defaults(func=activate_tab)
     parser_activate_tab_id = parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
                                                               help='Tab ID to activate')
@@ -929,17 +924,15 @@ def build_parser():
 
     parser_active_tab = subparsers.add_parser(
         'active',
-        help='''
-        display active tab for each client/window in the following format:
-        "<prefix>.<window_id>.<tab_id>"
-        ''')
+        help='Display active tab for each client/window in the following format: '
+             '"<prefix>.<window_id>.<tab_id>"')
     parser_active_tab.set_defaults(func=show_active_tabs)
 
     parser_screenshot = subparsers.add_parser(
         'screenshot',
-        help='''
-        return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api). Optionally target a specific tab ID.
-        ''')
+        help="Return base64 screenshot in json object with keys: 'data' (base64 png), "
+             "'tab' (tab id of visible tab), 'window' (window id of visible tab), "
+             "'api' (prefix of client api). Optionally target a specific tab ID.")
     parser_screenshot.set_defaults(func=screenshot)
     parser_screenshot_tab = parser_screenshot.add_argument('tab', type=str, nargs='?',
                                                            help='Optional tab ID, title, or URL fragment to capture')
@@ -950,9 +943,7 @@ def build_parser():
 
     parser_search_tabs = subparsers.add_parser(
         'search',
-        help='''
-        Search across your indexed tabs using sqlite fts5 plugin.
-        ''')
+        help='Search across your indexed tabs using sqlite fts5 plugin.')
     parser_search_tabs.set_defaults(func=search_tabs)
     parser_search_tabs.add_argument('--sqlite', type=str, default=in_temp_dir('tabs.sqlite'),
                                     help='sqlite DB filename')
@@ -1016,16 +1007,12 @@ def build_parser():
     parser_query_tabs.add_argument('-index', type=int,
                                    help='the position of the tabs within their windows.')
     parser_query_tabs.add_argument('-info', type=str,
-                                   help='''
-        the queryInfo parameter as outlined here: https://developer.chrome.com/extensions/tabs#method-query.
-        all other query arguments are ignored if this argument is present.
-        ''')
+                                   help='the queryInfo parameter as outlined here: https://developer.chrome.com/extensions/tabs#method-query. '
+                                        'All other query arguments are ignored if this argument is present.')
 
     parser_index_tabs = subparsers.add_parser(
         'index',
-        help='''
-        Index the text from browser's tabs. Text is put into sqlite fts5 table.
-        ''')
+        help="Index the text from browser's tabs. Text is put into sqlite fts5 table.")
     parser_index_tabs.set_defaults(func=index_tabs)
     parser_index_tabs_ids = parser_index_tabs.add_argument('tab_ids', type=str, nargs='*',
                                                            help='Tab IDs to get text from')
@@ -1042,12 +1029,9 @@ def build_parser():
 
     parser_new_tab = subparsers.add_parser(
         'new',
-        help='''
-        open new tab with the Google search results of the arguments that
-        follow. One positional argument is required:
-        <prefix>.<window_id> OR <client>. If window_id is not specified,
-        URL will be opened in the active window of the specifed client
-        ''')
+        help='Open new tab with the Google search results of the arguments that follow. '
+             'One positional argument is required: <prefix>.<window_id> OR <client>. '
+             'If window_id is not specified, URL will be opened in the active window of the specifed client')
     parser_new_tab.set_defaults(func=new_tab)
     parser_new_tab_target = parser_new_tab.add_argument(
         'prefix_window_id', type=str,
@@ -1057,42 +1041,33 @@ def build_parser():
 
     parser_open_urls = subparsers.add_parser(
         'open',
-        help='''
-        open URLs from arguments or stdin (one URL per line). The optional
-        first argument is <prefix>.<window_id> OR <client>. If window_id is
-        not specified, URLs will be opened in the active window of the
-        specified client. If no client is specified, the first ready client is
-        used. If window_id is 0, URLs will be opened in new window.
-        ''')
+        help='Open URLs from arguments or stdin (one URL per line). The optional '
+             'first argument is <prefix>.<window_id> OR <client>. If window_id is '
+             'not specified, URLs will be opened in the active window of the '
+             'specified client. If no client is specified, the first ready client is '
+             'used. If window_id is 0, URLs will be opened in new window.')
     parser_open_urls.set_defaults(func=open_urls)
     parser_open_urls_args = parser_open_urls.add_argument('open_args', type=str, nargs='*',
                                                           help='Optional client/window followed by URLs')
 
     parser_navigate_urls = subparsers.add_parser(
         'navigate',
-        help='''
-        navigate to URLs. There are two ways to specify tab ids and URLs:
-        1. stdin: lines with pairs of "tab_id<tab>url"
-        2. arguments: bruvtab navigate <tab_id> "<url>", e.g. bruvtab navigate b.20.1 "https://google.com"
-        stdin has the priority.
-        ''')
+        help='Navigate to URLs. There are two ways to specify tab ids and URLs: '
+             '1. stdin: lines with pairs of "tab_id<tab>url" '
+             '2. arguments: bruvtab navigate <tab_id> "<url>", e.g. bruvtab navigate b.20.1 "https://google.com". '
+             'Stdin has the priority.')
     parser_navigate_urls.set_defaults(func=navigate_urls)
     parser_navigate_urls_tab = parser_navigate_urls.add_argument('tab_id', type=str, help='Tab id e.g. b.20.130')
     parser_navigate_urls.add_argument('url', type=str, help='URL to navigate to')
 
     parser_update_tabs = subparsers.add_parser(
         'update',
-        help='''
-        Update tabs state, e.g. URL. There are two ways to specify updates:
-        1. stdin, pass JSON of the form:
-        [{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]
-        Where "properties" can be anything defined here:
-        https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/update
-        Example:
-        echo '[{"tab_id":"a.2118.2156", "properties":{"url":"https://google.com"}}]' | bruvtab update
-        
-        2. arguments, e.g.: bruvtab update -tabId b.1.862 -url="http://www.google.com" +muted
-        ''',
+        help='Update tabs state, e.g. URL. There are two ways to specify updates: '
+             '1. stdin, pass JSON of the form: '
+             '[{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}] '
+             'Where "properties" can be anything defined here: '
+             'https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/update. '
+             '2. arguments, e.g.: bruvtab update -tabId b.1.862 -url="http://www.google.com" +muted',
         prefix_chars='-+')
     parser_update_tabs.set_defaults(func=update_tabs)
     parser_update_tabs_tab = parser_update_tabs.add_argument('-tabId', type=str,
@@ -1122,20 +1097,15 @@ def build_parser():
     parser_update_tabs.add_argument('-pinned', action='store_const', const=False, default=None,
                                     help='unpin tab')
     parser_update_tabs.add_argument('-info', type=str,
-                                    help='''
-        JSON in the following format:
-        $ bruvtab update -info '[{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]'
-        all other update arguments are ignored if this argument is present.
-        ''')
+                                    help='JSON in the following format: '
+                                         'bruvtab update -info \'[{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]\'. '
+                                         'All other update arguments are ignored if this argument is present.')
 
     parser_get_words = subparsers.add_parser(
         'words',
-        help='''
-        show sorted unique words from all active tabs of all clients or from
-        specified tabs. This is
-        a helper for webcomplete plugin that helps complete words from the
-        browser
-        ''')
+        help='Show sorted unique words from all active tabs of all clients or from '
+             'specified tabs. This is a helper for webcomplete plugin that helps complete '
+             'words from the browser')
     parser_get_words.set_defaults(func=get_words)
     parser_get_words_ids = parser_get_words.add_argument('tab_ids', type=str, nargs='*',
                                                          help='Tab IDs to get words from')
@@ -1148,9 +1118,7 @@ def build_parser():
 
     parser_get_text = subparsers.add_parser(
         'text',
-        help='''
-        show text from all tabs or from specified tabs
-        ''')
+        help='Show text from all tabs or from specified tabs')
     parser_get_text.set_defaults(func=get_text)
     parser_get_text_ids = parser_get_text.add_argument('tab_ids', type=str, nargs='*',
                                                        help='Tab IDs to get text from')
@@ -1168,9 +1136,7 @@ def build_parser():
 
     parser_get_html = subparsers.add_parser(
         'html',
-        help='''
-        show html from all tabs or from specified tabs
-        ''')
+        help='Show html from all tabs or from specified tabs')
     parser_get_html.set_defaults(func=get_html)
     parser_get_html_ids = parser_get_html.add_argument('tab_ids', type=str, nargs='*',
                                                        help='Tab IDs to get text from')
@@ -1188,32 +1154,23 @@ def build_parser():
 
     parser_show_duplicates = subparsers.add_parser(
         'dup',
-        help='''
-        display reminder on how to show duplicate tabs using command-line tools
-        ''')
+        help='Display reminder on how to show duplicate tabs using command-line tools')
     parser_show_duplicates.set_defaults(func=show_duplicates)
 
     parser_show_windows = subparsers.add_parser(
         'windows',
-        help='''
-        display available prefixes and window IDs, along with the number of
-        tabs in every window
-        ''')
+        help='Display available prefixes and window IDs, along with the number of tabs in every window')
     parser_show_windows.set_defaults(func=show_windows)
 
     parser_show_clients = subparsers.add_parser(
         'clients',
-        help='''
-        display available browser clients (mediators), their prefixes and
-        address (host:port), native app PIDs, and browser names
-        ''')
+        help='Display available browser clients (mediators), their prefixes and address (host:port), '
+             'native app PIDs, and browser names')
     parser_show_clients.set_defaults(func=show_clients)
 
     parser_install_mediator = subparsers.add_parser(
         'install',
-        help='''
-        configure browser settings to use bruvtab mediator (native messaging app)
-        ''')
+        help='Configure browser settings to use bruvtab mediator (native messaging app)')
     parser_install_mediator.add_argument(
         '--browser', choices=['all', 'chrome', 'chromium', 'firefox', 'brave'],
         default='chrome',
@@ -1225,7 +1182,16 @@ def build_parser():
                                               'manifest for chromium')
     parser_install_mediator.set_defaults(func=install_mediator)
 
-    parser_client.completer = complete_clients
+    subparser_clients = []
+    seen_subparsers = set()
+    for subparser_name, subparser in subparsers.choices.items():
+        if subparser_name == 'install' or id(subparser) in seen_subparsers:
+            continue
+        seen_subparsers.add(id(subparser))
+        subparser_clients.append(add_global_arguments(subparser, default=SUPPRESS))
+
+    for client_action in [parser_client] + subparser_clients:
+        client_action.completer = complete_clients
     parser_close_tabs_ids.completer = complete_tab_ids
     parser_activate_tab_id.completer = complete_tab_ids
     parser_screenshot_tab.completer = complete_tab_ids
@@ -1242,9 +1208,9 @@ def build_parser():
 
 
 def parse_args(args):
-    args = normalize_global_args(args)
     parser = build_parser()
     argcomplete.autocomplete(parser, validator=completion_validator)
+    args = normalize_global_args(args)
     return parser.parse_args(args)
 
 
