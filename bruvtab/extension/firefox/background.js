@@ -272,15 +272,26 @@ function reconnect() {
     port = browser.runtime.connectNative(NATIVE_APP_NAME);
     console.log("It's Firefox: " + port);
     browserTabs = new FirefoxTabs(browser);
+    attachPortListeners();
 
   } else if (typeof chrome !== 'undefined') {
     port = chrome.runtime.connectNative(NATIVE_APP_NAME);
     console.log("It's Chrome/Chromium: " + port);
     browserTabs = new ChromeTabs(chrome);
+    attachPortListeners();
 
   } else {
     console.log("Unknown browser detected");
   }
+}
+
+function attachPortListeners() {
+  if (!port) {
+    return;
+  }
+
+  port.onMessage.addListener(handleNativeMessage);
+  port.onDisconnect.addListener(handleNativeDisconnect);
 }
 
 
@@ -684,7 +695,7 @@ function getBrowserName() {
 /*
 Listen for messages from the app.
 */
-port.onMessage.addListener((command) => {
+function handleNativeMessage(command) {
   console.log("Received: " + JSON.stringify(command, null, 4));
 
   if (command['name'] == 'list_tabs') {
@@ -762,9 +773,9 @@ port.onMessage.addListener((command) => {
     console.warn(error);
     port.postMessage({error: error});
   }
-});
+}
 
-port.onDisconnect.addListener(function() {
+function handleNativeDisconnect() {
   console.log("Disconnected");
   if(chrome.runtime.lastError) {
     console.warn("Reason: " + chrome.runtime.lastError.message);
@@ -774,7 +785,7 @@ port.onDisconnect.addListener(function() {
   //sleep(5000);
   console.log("Trying to reconnect");
   reconnect();
-});
+}
 
 console.log("Connected to native app " + NATIVE_APP_NAME);
 
