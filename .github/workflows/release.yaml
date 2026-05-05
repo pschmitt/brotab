@@ -169,7 +169,28 @@ jobs:
             dist/browser/*.zip
             dist/browser/*.xpi
 
+      - name: Check Chrome Web Store credentials
+        id: chrome-webstore-credentials
+        shell: bash
+        env:
+          CHROME_WEBSTORE_CLIENT_ID: ${{ secrets.CHROME_WEBSTORE_CLIENT_ID }}
+          CHROME_WEBSTORE_CLIENT_SECRET: ${{ secrets.CHROME_WEBSTORE_CLIENT_SECRET }}
+          CHROME_WEBSTORE_REFRESH_TOKEN: ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
+        run: |
+          if [[ -n "${CHROME_WEBSTORE_CLIENT_ID:-}" ]] \
+            && [[ -n "${CHROME_WEBSTORE_CLIENT_SECRET:-}" ]] \
+            && [[ -n "${CHROME_WEBSTORE_REFRESH_TOKEN:-}" ]]
+          then
+            echo "configured=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::notice::Skipping Chrome Web Store publish because CHROME_WEBSTORE_* secrets are not configured."
+          echo "configured=0" >> "$GITHUB_OUTPUT"
+
       - name: Publish Chrome extension to Chrome Web Store
+        if: steps.chrome-webstore-credentials.outputs.configured == '1'
+        continue-on-error: true
         uses: puzzlers-labs/chrome-webstore-publish@v1
         with:
           mode: publish
