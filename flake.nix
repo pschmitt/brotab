@@ -9,9 +9,9 @@
     let
       version = "2.0.6";
       chromeCrxVersion = version;
-      chromeCrxHash = "sha256-BDpyzpgy4NS8X9gg/U4HGheHG+44tZbpQYNwRs5lPEw=";
+      chromeCrxHash = "sha256-b6p+0LQQCQdQJdld0iR6r53zvAdtYCx05jPA3rFGkbo=";
       firefoxXpiVersion = version;
-      firefoxXpiHash = "sha256-lx9H5IlwDgVJP6imVxdiGqKRRFxRfbSsbVmTr2tSeZ8=";
+      firefoxXpiHash = "sha256-aPP/dLZgLIME+8e8CmIXGU7B8HOniNafsER6AYKG5rI=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       firefoxAddonId = "bruvtab_mediator@example.org";
       firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
