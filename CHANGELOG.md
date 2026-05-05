@@ -1,3 +1,9 @@
+2.0.6 (2026-05-05)
+
+* Fix Firefox screenshot handling and avoid wedging mediator communication on add-on errors
+* Add global client/browser targeting flags for CLI commands
+* Add raw image output for `bruvtab screenshot --raw`
+
 2.0.5 (2026-05-04)
 
 * Raise Firefox minimum version to 142.0 for AMO data collection permission metadata
