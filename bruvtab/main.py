@@ -52,6 +52,7 @@ import os
 import re
 import sys
 import time
+from base64 import b64decode
 from argparse import ArgumentParser
 from importlib import resources
 from functools import partial
@@ -305,9 +306,16 @@ def screenshot(args):
         if isinstance(result, dict) and result.get('error'):
             print("Cannot get screenshot from API %s: %s" % (api, result['error']), file=sys.stderr)
             continue
+        if args.raw:
+            data = result.get('data', '')
+            _header, _separator, data = data.partition(',')
+            sys.stdout.buffer.write(b64decode(data))
+            return 0
         result['api'] = api._prefix[:1]
         result = dumps(result)
         print(result)
+    if args.raw:
+        return 1
 
 
 def search_tabs(args):
@@ -753,6 +761,8 @@ def parse_args(args):
         return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api)
         ''')
     parser_screenshot.set_defaults(func=screenshot)
+    parser_screenshot.add_argument('--raw', action='store_true', default=False,
+                                   help='Output raw image bytes to stdout')
 
     parser_search_tabs = subparsers.add_parser(
         'search',

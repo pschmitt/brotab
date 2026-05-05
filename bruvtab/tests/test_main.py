@@ -446,6 +446,25 @@ class TestList(WithMediator):
         assert output[-1:] == [b'a.1.1\ttitle\turl\n']
 
 
+class TestScreenshot(WithMediator):
+    def test_raw_outputs_image_bytes(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            {'tab': 1, 'window': 1, 'data': 'data:image/png;base64,cG5n'},
+        ])
+
+        output = []
+        with patch('bruvtab.main.sys.stdout.buffer.write', output.append):
+            result = self._run_commands(['screenshot', '--raw'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'get_screenshot'},
+        ]
+        assert result == 0
+        assert output[-1:] == [b'png']
+
+
 class TestJsonOutput(TestCase):
     def test_print_json_plain_pretty(self):
         with patch('bruvtab.main.stdout_supports_rich', return_value=False):
@@ -483,6 +502,11 @@ class TestJsonOutput(TestCase):
 
         assert args.client_selector == 'firefox'
         assert args.open_args == ['url1']
+
+    def test_parse_args_accepts_raw_screenshot(self):
+        args = parse_args(['screenshot', '--raw'])
+
+        assert args.raw is True
 
 
 class TestRichTableOutput(WithMediator):
