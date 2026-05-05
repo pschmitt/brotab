@@ -1,3 +1,8 @@
+2.0.7 (2026-05-05)
+
+* Fix native messaging timeout handling with buffered browser messages
+* Reattach browser extension listeners after native host reconnects
+
 2.0.6 (2026-05-05)
 
 * Fix Firefox screenshot handling and avoid wedging mediator communication on add-on errors
