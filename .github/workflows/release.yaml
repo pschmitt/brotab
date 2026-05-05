@@ -5,37 +5,19 @@ on:
     tags:
       - "*"
 
+env:
+  VERSION: ${{ github.ref_name }}
+
 jobs:
-  release:
+  changelog:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      VERSION: ${{ github.ref_name }}
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
-
-      - name: Install release tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
-          npm install --global web-ext
 
       - name: Generate changelog
         id: changelog
@@ -69,8 +51,47 @@ jobs:
             echo "${delimiter}"
           } >> "${GITHUB_OUTPUT}"
 
+  python-distributions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
       - name: Build Python distributions
         run: python -m build
+
+      - name: Upload Python distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions-${{ env.VERSION }}
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+          if-no-files-found: error
+
+  chrome-browser-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
 
       - name: Package browser artifacts
         run: ./scripts/package-browser-artifacts.sh --version "${VERSION}"
@@ -96,6 +117,37 @@ jobs:
               --version "${VERSION}" \
               "${key_args[@]}"
 
+      - name: Verify Chrome release assets
+        shell: bash
+        run: |
+          test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
+          test -f "dist/browser/bruvtab-chrome-${VERSION}.zip"
+          test -f "dist/browser/bruvtab-firefox-source-${VERSION}.zip"
+
+      - name: Upload Chrome browser artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-artifacts-chrome-${{ env.VERSION }}
+          path: |
+            dist/browser/bruvtab-chrome-${{ env.VERSION }}.crx
+            dist/browser/bruvtab-chrome-${{ env.VERSION }}.zip
+            dist/browser/bruvtab-firefox-source-${{ env.VERSION }}.zip
+          if-no-files-found: error
+
+  firefox-amo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install release tooling
+        run: npm install --global web-ext
+
       - name: Publish Firefox extension to AMO
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
@@ -107,21 +159,52 @@ jobs:
             --approval-timeout 0 \
             --artifacts-dir "$PWD/dist/firefox-amo-signed"
 
+      - name: Normalize AMO Firefox XPI artifact name
+        shell: bash
+        run: |
+          mkdir -p dist/browser
+          amo_xpi="$(find dist/firefox-amo-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
+
+          if [[ -n "${amo_xpi:-}" ]]
+          then
+            cp "$amo_xpi" "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
+          fi
+
+      - name: Upload AMO Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-artifacts-firefox-amo-${{ env.VERSION }}
+          path: dist/browser/bruvtab-firefox-amo-${{ env.VERSION }}.xpi
+          if-no-files-found: ignore
+
+  firefox-self-signed:
+    runs-on: ubuntu-latest
+    env:
+      SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install release tooling
+        run: npm install --global web-ext
+
       - name: Sign Firefox extension for GitHub release
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
-          SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
         run: |
           ./scripts/sign-firefox-addon.sh \
             --channel unlisted \
             --manifest-version "${SELF_FIREFOX_VERSION}" \
             --artifacts-dir "$PWD/dist/firefox-self-signed"
 
-      - name: Normalize Firefox XPI artifact names
+      - name: Normalize self-signed Firefox XPI artifact name
         shell: bash
-        env:
-          SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
         run: |
           mkdir -p dist/browser
           self_xpi="$(find dist/firefox-self-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
@@ -132,36 +215,57 @@ jobs:
             exit 2
           fi
 
-          amo_xpi="$(find dist/firefox-amo-signed -maxdepth 1 -type f -name '*.xpi' | head -n 1)"
-          if [[ -n "${amo_xpi:-}" ]]
-          then
-            cp "$amo_xpi" "dist/browser/bruvtab-firefox-amo-${VERSION}.xpi"
-          fi
-
           cp "$self_xpi" "dist/browser/bruvtab-firefox-${VERSION}.xpi"
 
-      - name: Verify browser release assets
+      - name: Verify self-signed Firefox artifact
         shell: bash
-        env:
-          SELF_FIREFOX_VERSION: ${{ github.ref_name }}.1
-        run: |
-          test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
-          test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
+        run: test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
 
-      - name: Upload browser artifacts
+      - name: Upload self-signed Firefox artifact
         uses: actions/upload-artifact@v4
         with:
-          name: browser-artifacts-${{ env.VERSION }}
-          path: |
-            dist/browser/*.crx
-            dist/browser/*.xpi
-            dist/browser/*.zip
+          name: browser-artifacts-firefox-self-signed-${{ env.VERSION }}
+          path: dist/browser/bruvtab-firefox-${{ env.VERSION }}.xpi
           if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - changelog
+      - python-distributions
+      - chrome-browser-artifacts
+      - firefox-amo
+      - firefox-self-signed
+    permissions:
+      contents: write
+    steps:
+      - name: Download Python distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-distributions-${{ env.VERSION }}
+          path: dist
+
+      - name: Download browser artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: browser-artifacts-*-${{ env.VERSION }}
+          path: dist/browser
+          merge-multiple: true
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          test -f "dist/bruvtab-${VERSION}.tar.gz"
+          test -f "dist/bruvtab-${VERSION}-py3-none-any.whl"
+          test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
+          test -f "dist/browser/bruvtab-chrome-${VERSION}.zip"
+          test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
+          test -f "dist/browser/bruvtab-firefox-source-${VERSION}.zip"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: ${{ needs.changelog.outputs.changelog }}
           files: |
             dist/*.tar.gz
             dist/*.whl
