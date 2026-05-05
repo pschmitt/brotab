@@ -97,11 +97,13 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_screenshot(self, tab_id: int = None) -> str:
+    def get_screenshot(self, tab_id: int = None, wait: float = 0) -> str:
         mediator_logger.info('getting screemsjpt')
         command = {'name': 'get_screenshot'}
         if tab_id is not None:
             command['tab_id'] = tab_id
+        if wait > 0:
+            command['wait'] = wait
         self._transport.send(command)
         return self._transport.recv()
 

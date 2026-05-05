@@ -1,3 +1,4 @@
+from argparse import Namespace
 from io import StringIO
 from string import ascii_letters
 from time import sleep
@@ -16,6 +17,12 @@ from bruvtab.files import in_temp_dir
 from bruvtab.files import spit
 from bruvtab.inout import get_available_tcp_port
 from bruvtab.main import create_clients
+from bruvtab.main import build_parser
+from bruvtab.main import complete_clients
+from bruvtab.main import complete_client_or_window
+from bruvtab.main import complete_open_args
+from bruvtab.main import complete_tab_ids
+from bruvtab.main import completion_validator
 from bruvtab.main import parse_args
 from bruvtab.main import print_json
 from bruvtab.main import run_commands
@@ -695,6 +702,48 @@ class TestJsonOutput(TestCase):
         args = parse_args(['screenshot', 'a.1.2'])
 
         assert args.tab == 'a.1.2'
+
+    def test_completion_validator_accepts_compact_tab_prefixes(self):
+        assert completion_validator('a.1.2', 'a1.')
+        assert not completion_validator('b.1.2', 'a1.')
+
+    @patch('bruvtab.main._list_tabs_for_completion')
+    def test_complete_tab_ids_matches_compact_prefixes(self, mocked_tabs):
+        mocked_tabs.return_value = [
+            'a.1.2\tAlpha One\thttps://example.com/a1',
+            'a.1.3\tAlpha Two\thttps://example.com/a2',
+            'b.2.1\tBeta\thttps://example.com/b1',
+        ]
+
+        matches = complete_tab_ids('a1.', Namespace(target_hosts=None, client_selector=None))
+
+        assert matches == {
+            'a.1.2': 'Alpha One | https://example.com/a1',
+            'a.1.3': 'Alpha Two | https://example.com/a2',
+        }
+
+    @patch('bruvtab.main.complete_clients')
+    @patch('bruvtab.main.complete_windows')
+    def test_complete_open_args_only_suggests_targets_for_first_argument(self, mocked_windows, mocked_clients):
+        mocked_windows.return_value = {'a.1': '2 tabs'}
+        mocked_clients.return_value = {'a': 'firefox | localhost:4625'}
+
+        first_arg_matches = complete_open_args('', Namespace(open_args=[]))
+        second_arg_matches = complete_open_args('https', Namespace(open_args=['a.1']))
+
+        assert first_arg_matches == {
+            'a.1': '2 tabs',
+            'a': 'firefox | localhost:4625',
+        }
+        assert second_arg_matches == {}
+
+    def test_parser_attaches_dynamic_completers(self):
+        parser = build_parser()
+        subparsers = next(action for action in parser._actions if hasattr(action, 'choices'))
+
+        assert next(action for action in parser._actions if action.dest == 'client_selector').completer == complete_clients
+        assert next(action for action in subparsers.choices['close']._actions if action.dest == 'tab_ids').completer == complete_tab_ids
+        assert next(action for action in subparsers.choices['new']._actions if action.dest == 'prefix_window_id').completer == complete_client_or_window
 
 
 class TestRichTableOutput(WithMediator):

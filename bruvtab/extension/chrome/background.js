@@ -783,11 +783,17 @@ function getActiveTabs() {
   });
 }
 
-function getActiveScreenshot() {
-  browserTabs.getActiveScreenshot(
+function getActiveScreenshot(wait) {
+  const capture = () => browserTabs.getActiveScreenshot(
     (data) => port.postMessage(data),
     (error) => port.postMessage({error: `${error}`})
   );
+
+  if (wait > 0) {
+    setTimeout(capture, wait * 1000);
+  } else {
+    capture();
+  }
 }
 
 function restoreActiveTab(previousTab) {
@@ -817,9 +823,9 @@ function waitForTabActivation(windowId, tabId, onSuccess, onError, attemptsLeft 
   });
 }
 
-function getScreenshot(tab_id) {
+function getScreenshot(tab_id, wait) {
   if (tab_id == null) {
-    getActiveScreenshot();
+    getActiveScreenshot(wait);
     return;
   }
 
@@ -841,22 +847,29 @@ function getScreenshot(tab_id) {
           () => waitForTabActivation(
             targetTab.windowId,
             targetTab.id,
-            () => browserTabs.captureVisible(
-              targetTab.windowId,
-              targetTab.id,
-              (data) => {
-                if (previousTab && previousTab.id !== targetTab.id) {
-                  restoreActiveTab(previousTab);
+            () => {
+              const capture = () => browserTabs.captureVisible(
+                targetTab.windowId,
+                targetTab.id,
+                (data) => {
+                  if (previousTab && previousTab.id !== targetTab.id) {
+                    restoreActiveTab(previousTab);
+                  }
+                  port.postMessage(data);
+                },
+                (error) => {
+                  if (previousTab && previousTab.id !== targetTab.id) {
+                    restoreActiveTab(previousTab);
+                  }
+                  port.postMessage({error: `${error}`});
                 }
-                port.postMessage(data);
-              },
-              (error) => {
-                if (previousTab && previousTab.id !== targetTab.id) {
-                  restoreActiveTab(previousTab);
-                }
-                port.postMessage({error: `${error}`});
+              );
+              if (wait > 0) {
+                setTimeout(capture, wait * 1000);
+              } else {
+                capture();
               }
-            ),
+            },
             (error) => {
               if (previousTab && previousTab.id !== targetTab.id) {
                 restoreActiveTab(previousTab);
@@ -1092,7 +1105,7 @@ function handleNativeMessage(command) {
 
   else if (command['name'] == 'get_screenshot') {
     console.log('Getting visible screenshot');
-    getScreenshot(command['tab_id']);
+    getScreenshot(command['tab_id'], command['wait']);
   }
 
   else if (command['name'] == 'get_words') {

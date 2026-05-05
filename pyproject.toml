@@ -22,6 +22,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
+  "argcomplete>=3.5",
   "Flask>=2.2,<4",
   "requests>=2.24",
   "psutil>=5.8",

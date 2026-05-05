@@ -110,6 +110,22 @@ bruvtab install
 * **Firefox**: Prefer the signed XPI attached to each GitHub release, or use the flake's self-hosted XPI output (`firefoxAddon`, alias `firefoxXpi`). The release workflow publishes listed AMO builds and signs separate self-distributed XPIs for GitHub releases.
 * **Chrome/Brave/Chromium**: Prefer the Chrome Web Store build once published. The release workflow also uploads Chrome CRX/ZIP artifacts and a self-hosted update manifest to GitHub releases.
 
+### Shell completions
+
+BruvTab ships dynamic completions for **bash** and **zsh** via `argcomplete`.
+
+For `pipx`, `uv tool`, or `pip` installs, enable them in your shell:
+
+```bash
+eval "$(register-python-argcomplete --shell bash bruvtab)"
+eval "$(register-python-argcomplete --shell zsh bruvtab)"
+```
+
+The Nix package installs completion files into the standard locations:
+
+* `share/bash-completion/completions/bruvtab`
+* `share/zsh/site-functions/_bruvtab`
+
 ### NixOS / Home Manager
 
 Add `bruvtab` as an input to your flake. For Chromium/Home Manager, you can either pin the packaged CRX from the flake output or point Chrome at the published update manifest URL.

@@ -145,7 +145,8 @@ class MediatorHttpServer:
     def get_screenshot(self):
         tab_id = request.args.get('tab_id')
         tab_id = int(tab_id) if is_valid_integer(tab_id) else None
-        return self.remote_api.get_screenshot(tab_id)
+        wait = request.args.get('wait', 0, type=float)
+        return self.remote_api.get_screenshot(tab_id, wait)
 
     def get_words(self, tab_id=None):
         tab_id = int(tab_id) if is_valid_integer(tab_id) else None

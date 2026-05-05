@@ -71,6 +71,7 @@
             ];
 
             propagatedBuildInputs = with py; [
+              argcomplete
               flask
               psutil
               requests
@@ -116,6 +117,12 @@
                 $out/lib/bruvtab/extensions/chrome/
               cp -R bruvtab/extension/firefox/. \
                 $out/lib/bruvtab/extensions/firefox/
+
+              mkdir -p $out/share/bash-completion/completions $out/share/zsh/site-functions
+              ${py.argcomplete}/bin/register-python-argcomplete --shell bash bruvtab \
+                > $out/share/bash-completion/completions/bruvtab
+              ${py.argcomplete}/bin/register-python-argcomplete --shell zsh bruvtab \
+                > $out/share/zsh/site-functions/_bruvtab
             '';
 
             pythonImportsCheck = [
@@ -183,6 +190,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
           py = pkgs.python3.withPackages (ps: [
+            ps.argcomplete
             ps.build
             ps.flask
             ps.psutil

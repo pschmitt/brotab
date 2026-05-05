@@ -164,14 +164,21 @@ class SingleMediatorAPI(object):
 
     def get_screenshot(self, args):
         tab_id = getattr(args, 'tab_id', None)
+        wait = getattr(args, 'wait', 0)
+        query_params = []
+        if wait > 0:
+            query_params.append('wait=%s' % wait)
+
         if tab_id is None:
-            return self._get('/get_screenshot')
+            query_string = '?' + '&'.join(query_params) if query_params else ''
+            return self._get('/get_screenshot%s' % query_string)
 
         prefix, _window_id, local_tab_id = split_prefixed_tab_id(tab_id)
         if prefix != self._prefix:
             return dumps({'error': 'Tab %s is not available on client %s' % (tab_id, self._prefix[:-1])})
 
-        return self._get('/get_screenshot?tab_id=%s' % local_tab_id)
+        query_params.append('tab_id=%s' % local_tab_id)
+        return self._get('/get_screenshot?%s' % '&'.join(query_params))
 
     def query_tabs(self, args):
         query = args

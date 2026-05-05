@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 """
 This is a browser tab client. It allows listing, closing and creating
@@ -52,6 +53,7 @@ import os
 import re
 import sys
 import time
+import argcomplete
 from base64 import b64decode
 from argparse import ArgumentParser
 from importlib import resources
@@ -260,6 +262,113 @@ def resolve_tab_selectors(apis, selectors):
             return None
         tab_ids.append(tab_id)
     return tab_ids
+
+
+def _compact_completion_token(value):
+    return ''.join(char for char in value.lower() if char.isalnum())
+
+
+def _completion_matches(candidate, prefix):
+    if not prefix:
+        return True
+    candidate = candidate.lower()
+    prefix = prefix.lower()
+    if candidate.startswith(prefix):
+        return True
+    compact_prefix = _compact_completion_token(prefix)
+    if not compact_prefix:
+        return False
+    return _compact_completion_token(candidate).startswith(compact_prefix)
+
+
+def _completion_description(*parts, limit=120):
+    text = ' | '.join(part.strip() for part in parts if part and part.strip())
+    if len(text) <= limit:
+        return text
+    return text[:limit - 3] + '...'
+
+
+def _list_tabs_for_completion(parsed_args):
+    apis = create_clients(
+        getattr(parsed_args, 'target_hosts', None),
+        getattr(parsed_args, 'client_selector', None),
+    )
+    if not apis:
+        return []
+    return MultipleMediatorsAPI(apis).list_tabs([])
+
+
+def _tab_completion_matches(tab_id, prefix):
+    return _completion_matches(tab_id, prefix)
+
+
+def complete_tab_ids(prefix, parsed_args, **_kwargs):
+    matches = {}
+    for line in _list_tabs_for_completion(parsed_args):
+        parts = line.split('\t', 2)
+        if len(parts) < 3:
+            continue
+        tab_id, title, url = parts
+        if not _tab_completion_matches(tab_id, prefix):
+            continue
+        matches[tab_id] = _completion_description(title, url)
+    return matches
+
+
+def complete_clients(prefix, parsed_args, **_kwargs):
+    matches = {}
+    seen_browsers = set()
+    for client in create_clients(getattr(parsed_args, 'target_hosts', None), None):
+        client_prefix = client._prefix[:-1]
+        if _completion_matches(client_prefix, prefix) or _completion_matches(client._prefix, prefix):
+            matches[client_prefix] = _completion_description(client.browser, '%s:%s' % (client._host, client._port))
+        browser = client.browser.lower()
+        if browser not in seen_browsers and _completion_matches(browser, prefix):
+            seen_browsers.add(browser)
+            matches[browser] = 'browser selector'
+    for browser in ('chrome', 'chromium', 'firefox', 'brave'):
+        if browser not in matches and _completion_matches(browser, prefix):
+            matches[browser] = 'browser selector'
+    return matches
+
+
+def complete_windows(prefix, parsed_args, **_kwargs):
+    windows = {}
+    for line in _list_tabs_for_completion(parsed_args):
+        tab_id, _title, _url = line.split('\t', 2)
+        client_id, window_id, _tab_id = tab_id.split('.')
+        key = '%s.%s' % (client_id, window_id)
+        windows[key] = windows.get(key, 0) + 1
+    return {
+        window_id: '%s tab%s' % (count, '' if count == 1 else 's')
+        for window_id, count in windows.items()
+        if _completion_matches(window_id, prefix)
+    }
+
+
+def complete_client_or_window(prefix, parsed_args, **_kwargs):
+    if prefix.startswith(('http://', 'https://', 'file://')):
+        return {}
+    completions = complete_windows(prefix, parsed_args)
+    completions.update({
+        key: value
+        for key, value in complete_clients(prefix, parsed_args).items()
+        if '.' not in key
+    })
+    return completions
+
+
+def complete_open_args(prefix, parsed_args, **_kwargs):
+    open_args = getattr(parsed_args, 'open_args', []) or []
+    if open_args and is_prefix_window_id(open_args[0]):
+        return {}
+    return complete_client_or_window(prefix, parsed_args)
+
+
+def completion_validator(candidate, current_input):
+    if current_input.startswith('-'):
+        return candidate.startswith(current_input)
+    return _completion_matches(candidate, current_input)
 
 
 def print_json(data):
@@ -744,8 +853,7 @@ def normalize_global_args(args):
     return global_args + remaining_args
 
 
-def parse_args(args):
-    args = normalize_global_args(args)
+def build_parser():
     parser = ArgumentParser(
         formatter_class=make_help_formatter,
         description='''
@@ -756,8 +864,8 @@ def parse_args(args):
 
     parser.add_argument('--target', dest='target_hosts', default=None,
                         help='Target hosts IP:Port')
-    parser.add_argument('--client', '--browser', dest='client_selector', default=None,
-                        help='Target client prefix or browser name')
+    parser_client = parser.add_argument('--client', '--browser', dest='client_selector', default=None,
+                                        help='Target client prefix or browser name')
     parser.add_argument('--firefox', dest='client_selector', action='store_const', const='firefox',
                         help='Target Firefox clients')
     parser.add_argument('--chrome', dest='client_selector', action='store_const', const='chrome',
@@ -804,8 +912,8 @@ def parse_args(args):
         tab IDs (first column)
         ''')
     parser_close_tabs.set_defaults(func=close_tabs)
-    parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
-                                   help='Tab IDs to close')
+    parser_close_tabs_ids = parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
+                                                           help='Tab IDs to close')
 
     parser_activate_tab = subparsers.add_parser(
         'activate',
@@ -814,8 +922,8 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id>"
         ''')
     parser_activate_tab.set_defaults(func=activate_tab)
-    parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
-                                     help='Tab ID to activate')
+    parser_activate_tab_id = parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
+                                                              help='Tab ID to activate')
     parser_activate_tab.add_argument('--focused', action='store_const', const=True, default=None,
                                      help='make browser focused after tab activation (default: False)')
 
@@ -833,10 +941,12 @@ def parse_args(args):
         return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api). Optionally target a specific tab ID.
         ''')
     parser_screenshot.set_defaults(func=screenshot)
-    parser_screenshot.add_argument('tab', type=str, nargs='?',
-                                   help='Optional tab ID, title, or URL fragment to capture')
+    parser_screenshot_tab = parser_screenshot.add_argument('tab', type=str, nargs='?',
+                                                           help='Optional tab ID, title, or URL fragment to capture')
     parser_screenshot.add_argument('--raw', action='store_true', default=False,
                                    help='Output raw image bytes to stdout')
+    parser_screenshot.add_argument('--wait', type=float, default=0,
+                                   help='Wait time in seconds before taking the screenshot')
 
     parser_search_tabs = subparsers.add_parser(
         'search',
@@ -917,8 +1027,8 @@ def parse_args(args):
         Index the text from browser's tabs. Text is put into sqlite fts5 table.
         ''')
     parser_index_tabs.set_defaults(func=index_tabs)
-    parser_index_tabs.add_argument('tab_ids', type=str, nargs='*',
-                                   help='Tab IDs to get text from')
+    parser_index_tabs_ids = parser_index_tabs.add_argument('tab_ids', type=str, nargs='*',
+                                                           help='Tab IDs to get text from')
     parser_index_tabs.add_argument('--sqlite', type=str, default=in_temp_dir('tabs.sqlite'),
                                    help='sqlite DB filename')
     parser_index_tabs.add_argument('--tsv', type=str, default=None,
@@ -939,7 +1049,7 @@ def parse_args(args):
         URL will be opened in the active window of the specifed client
         ''')
     parser_new_tab.set_defaults(func=new_tab)
-    parser_new_tab.add_argument(
+    parser_new_tab_target = parser_new_tab.add_argument(
         'prefix_window_id', type=str,
         help='Client prefix and (optionally) window id, e.g. b.20')
     parser_new_tab.add_argument('query', type=str, nargs='*',
@@ -955,8 +1065,8 @@ def parse_args(args):
         used. If window_id is 0, URLs will be opened in new window.
         ''')
     parser_open_urls.set_defaults(func=open_urls)
-    parser_open_urls.add_argument('open_args', type=str, nargs='*',
-                                  help='Optional client/window followed by URLs')
+    parser_open_urls_args = parser_open_urls.add_argument('open_args', type=str, nargs='*',
+                                                          help='Optional client/window followed by URLs')
 
     parser_navigate_urls = subparsers.add_parser(
         'navigate',
@@ -967,7 +1077,7 @@ def parse_args(args):
         stdin has the priority.
         ''')
     parser_navigate_urls.set_defaults(func=navigate_urls)
-    parser_navigate_urls.add_argument('tab_id', type=str, help='Tab id e.g. b.20.130')
+    parser_navigate_urls_tab = parser_navigate_urls.add_argument('tab_id', type=str, help='Tab id e.g. b.20.130')
     parser_navigate_urls.add_argument('url', type=str, help='URL to navigate to')
 
     parser_update_tabs = subparsers.add_parser(
@@ -985,8 +1095,8 @@ def parse_args(args):
         ''',
         prefix_chars='-+')
     parser_update_tabs.set_defaults(func=update_tabs)
-    parser_update_tabs.add_argument('-tabId', type=str,
-                                    help='tab id to apply updates to')
+    parser_update_tabs_tab = parser_update_tabs.add_argument('-tabId', type=str,
+                                                             help='tab id to apply updates to')
     parser_update_tabs.add_argument('-url', type=str,
                                     help='a URL to navigate the tab to. JavaScript URLs are not supported')
     parser_update_tabs.add_argument('-openerTabId', type=str,
@@ -1027,8 +1137,8 @@ def parse_args(args):
         browser
         ''')
     parser_get_words.set_defaults(func=get_words)
-    parser_get_words.add_argument('tab_ids', type=str, nargs='*',
-                                  help='Tab IDs to get words from')
+    parser_get_words_ids = parser_get_words.add_argument('tab_ids', type=str, nargs='*',
+                                                         help='Tab IDs to get words from')
     parser_get_words.add_argument(
         '--match-regex', type=str, default=DEFAULT_GET_WORDS_MATCH_REGEX,
         help='Regex that is used to match words in the page text')
@@ -1042,8 +1152,8 @@ def parse_args(args):
         show text from all tabs or from specified tabs
         ''')
     parser_get_text.set_defaults(func=get_text)
-    parser_get_text.add_argument('tab_ids', type=str, nargs='*',
-                                 help='Tab IDs to get text from')
+    parser_get_text_ids = parser_get_text.add_argument('tab_ids', type=str, nargs='*',
+                                                       help='Tab IDs to get text from')
     parser_get_text.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
     parser_get_text.add_argument('--cleanup', action='store_true',
@@ -1062,8 +1172,8 @@ def parse_args(args):
         show html from all tabs or from specified tabs
         ''')
     parser_get_html.set_defaults(func=get_html)
-    parser_get_html.add_argument('tab_ids', type=str, nargs='*',
-                                 help='Tab IDs to get text from')
+    parser_get_html_ids = parser_get_html.add_argument('tab_ids', type=str, nargs='*',
+                                                       help='Tab IDs to get text from')
     parser_get_html.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
     parser_get_html.add_argument('--cleanup', action='store_true',
@@ -1115,6 +1225,26 @@ def parse_args(args):
                                               'manifest for chromium')
     parser_install_mediator.set_defaults(func=install_mediator)
 
+    parser_client.completer = complete_clients
+    parser_close_tabs_ids.completer = complete_tab_ids
+    parser_activate_tab_id.completer = complete_tab_ids
+    parser_screenshot_tab.completer = complete_tab_ids
+    parser_index_tabs_ids.completer = complete_tab_ids
+    parser_new_tab_target.completer = complete_client_or_window
+    parser_open_urls_args.completer = complete_open_args
+    parser_navigate_urls_tab.completer = complete_tab_ids
+    parser_update_tabs_tab.completer = complete_tab_ids
+    parser_get_words_ids.completer = complete_tab_ids
+    parser_get_text_ids.completer = complete_tab_ids
+    parser_get_html_ids.completer = complete_tab_ids
+
+    return parser
+
+
+def parse_args(args):
+    args = normalize_global_args(args)
+    parser = build_parser()
+    argcomplete.autocomplete(parser, validator=completion_validator)
     return parser.parse_args(args)
 
 
