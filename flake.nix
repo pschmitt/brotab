@@ -65,6 +65,7 @@
             src = projectSource;
 
             nativeBuildInputs = with py; [
+              pkgs.installShellFiles
               pkgs.jq
               setuptools
               wheel
@@ -118,11 +119,13 @@
               cp -R bruvtab/extension/firefox/. \
                 $out/lib/bruvtab/extensions/firefox/
 
-              mkdir -p $out/share/bash-completion/completions $out/share/zsh/site-functions
+              local bashCompletion="$TMPDIR/bruvtab.bash"
+              local zshCompletion="$TMPDIR/_bruvtab"
               ${py.argcomplete}/bin/register-python-argcomplete --shell bash bruvtab \
-                > $out/share/bash-completion/completions/bruvtab
+                > "$bashCompletion"
               ${py.argcomplete}/bin/register-python-argcomplete --shell zsh bruvtab \
-                > $out/share/zsh/site-functions/_bruvtab
+                > "$zshCompletion"
+              installShellCompletion --bash "$bashCompletion" --zsh "$zshCompletion"
             '';
 
             pythonImportsCheck = [
