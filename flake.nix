@@ -13,6 +13,7 @@
       firefoxXpiVersion = version;
       firefoxXpiHash = "sha256-aPP/dLZgLIME+8e8CmIXGU7B8HOniNafsER6AYKG5rI=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
+      chromeWebStoreExtensionId = "bkifkhiemhgpnomgdcbcbkifekkecnhk";
       firefoxAddonId = "bruvtab_mediator@example.org";
       firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
       lib = nixpkgs.lib;
@@ -92,11 +93,16 @@
                 bruvtab/mediator/firefox_mediator.json \
                 > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
 
-              jq --arg out "$out" --arg ext "${chromeExtensionId}" '
+              jq \
+                --arg out "$out" \
+                --arg ext "${chromeExtensionId}" \
+                --arg webStoreExt "${chromeWebStoreExtensionId}" \
+                '
                 .path = "\($out)/bin/bruvtab_mediator"
                 | .allowed_origins = (
                     (.allowed_origins // [])
                     + ["chrome-extension://\($ext)/"]
+                    + ["chrome-extension://\($webStoreExt)/"]
                   | unique)
               ' \
                 bruvtab/mediator/chromium_mediator.json \
