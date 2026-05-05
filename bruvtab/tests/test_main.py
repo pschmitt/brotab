@@ -739,7 +739,7 @@ class TestJsonOutput(TestCase):
 
     def test_parser_attaches_dynamic_completers(self):
         parser = build_parser()
-        subparsers = next(action for action in parser._actions if hasattr(action, 'choices'))
+        subparsers = next(action for action in parser._actions if getattr(action, 'choices', None))
 
         assert next(action for action in parser._actions if action.dest == 'client_selector').completer == complete_clients
         assert next(action for action in subparsers.choices['close']._actions if action.dest == 'tab_ids').completer == complete_tab_ids
