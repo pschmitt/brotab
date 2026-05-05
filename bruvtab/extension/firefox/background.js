@@ -50,6 +50,10 @@ class BrowserTabs {
     throw new Error('getActive is not implemented');
   }
 
+  getActiveScreenshot(onSuccess, onError) {
+    throw new Error('getActiveScreenshot is not implemented');
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
@@ -123,6 +127,28 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
+  getActiveScreenshot(onSuccess, onError) {
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions).then(
+      (tabs) => {
+        if (!tabs.length) {
+          onError('No active tab found');
+          return;
+        }
+        let tab = tabs[0];
+        this._browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' }).then(
+          (data) => onSuccess({
+            tab: tab.id,
+            window: tab.windowId,
+            data: data
+          }),
+          (error) => onError(error)
+        );
+      },
+      (error) => onError(error)
+    );
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     this._browser.tabs.executeScript(tab_id, {code: script}).then(
       (result) => onSuccess(result, payload),
@@ -184,6 +210,32 @@ class ChromeTabs extends BrowserTabs {
 
   getActive(onSuccess) {
     this._browser.tabs.query({active: true}, onSuccess);
+  }
+
+  getActiveScreenshot(onSuccess, onError) {
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions, (tabs) => {
+      if (this._browser.runtime.lastError) {
+        onError(this._browser.runtime.lastError.message);
+        return;
+      }
+      if (!tabs.length) {
+        onError('No active tab found');
+        return;
+      }
+      let tab = tabs[0];
+      this._browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' }, (data) => {
+        if (this._browser.runtime.lastError) {
+          onError(this._browser.runtime.lastError.message);
+          return;
+        }
+        onSuccess({
+          tab: tab.id,
+          window: tab.windowId,
+          data: data
+        });
+      });
+    });
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
@@ -469,6 +521,13 @@ function getActiveTabs() {
   });
 }
 
+function getActiveScreenshot() {
+  browserTabs.getActiveScreenshot(
+    (data) => port.postMessage(data),
+    (error) => port.postMessage({error: `${error}`})
+  );
+}
+
 function getWordsScript(match_regex, join_with) {
   return GET_WORDS_SCRIPT
     .replace('#match_regex#', match_regex)
@@ -673,6 +732,11 @@ port.onMessage.addListener((command) => {
     getActiveTabs();
   }
 
+  else if (command['name'] == 'get_screenshot') {
+    console.log('Getting visible screenshot');
+    getActiveScreenshot();
+  }
+
   else if (command['name'] == 'get_words') {
     console.log('Getting words from tab:', command['tab_id']);
     getWords(command['tab_id'], command['match_regex'], command['join_with']);
@@ -691,6 +755,12 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_browser') {
     console.log('Getting browser name');
     getBrowserName();
+  }
+
+  else {
+    const error = `Unknown command: ${command['name']}`;
+    console.warn(error);
+    port.postMessage({error: error});
   }
 });
 

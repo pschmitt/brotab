@@ -50,7 +50,7 @@ class BrowserTabs {
     throw new Error('getActive is not implemented');
   }
 
-  getActiveScreenshot(onSuccess) {
+  getActiveScreenshot(onSuccess, onError) {
     throw new Error('getActiveScreenshot is not implemented');
   }
 
@@ -144,10 +144,14 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  getActiveScreenshot(onSuccess) {
+  getActiveScreenshot(onSuccess, onError) {
     let queryOptions = { active: true, lastFocusedWindow: true };
     this._browser.tabs.query(queryOptions).then(
       (tabs) => {
+        if (!tabs.length) {
+          onError('No active tab found');
+          return;
+        }
         let tab = tabs[0];
         let windowId = tab.windowId;
         let tabId = tab.id;
@@ -160,10 +164,10 @@ class FirefoxTabs extends BrowserTabs {
             };
             onSuccess(message);
           },
-          (error) => console.log(`Error: ${error}`)
+          (error) => onError(error)
         );
       },
-      (error) => console.log(`Error: ${error}`)
+      (error) => onError(error)
     );
   }
 
@@ -262,14 +266,26 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query({active: true}, onSuccess);
   }
 
-  getActiveScreenshot(onSuccess) {
+  getActiveScreenshot(onSuccess, onError) {
     // this._browser.tabs.captureVisibleTab(null, { format: 'png' }, onSuccess);
     let queryOptions = { active: true, lastFocusedWindow: true };
     this._browser.tabs.query(queryOptions, (tabs) => {
+      if (this._browser.runtime.lastError) {
+        onError(this._browser.runtime.lastError.message);
+        return;
+      }
+      if (!tabs.length) {
+        onError('No active tab found');
+        return;
+      }
       let tab = tabs[0];
       let windowId = tab.windowId;
       let tabId = tab.id;
       this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }, function(data) {
+        if (chrome.runtime.lastError) {
+          onError(chrome.runtime.lastError.message);
+          return;
+        }
         const message = {
           tab: tabId,
           window: windowId,
@@ -707,9 +723,10 @@ function getActiveTabs() {
 }
 
 function getActiveScreenshot() {
-  browserTabs.getActiveScreenshot(data => {
-    port.postMessage(data);
-  });
+  browserTabs.getActiveScreenshot(
+    (data) => port.postMessage(data),
+    (error) => port.postMessage({error: `${error}`})
+  );
 }
 
 function getWordsScript(match_regex, join_with) {
@@ -939,6 +956,12 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_browser') {
     console.log('Getting browser name');
     getBrowserName();
+  }
+
+  else {
+    const error = `Unknown command: ${command['name']}`;
+    console.warn(error);
+    port.postMessage({error: error});
   }
 });
 

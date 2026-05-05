@@ -135,18 +135,50 @@ def parse_target_hosts(target_hosts: str) -> Tuple[List[str], List[int]]:
     return hosts, ports
 
 
-def create_clients(target_hosts=None) -> List[SingleMediatorAPI]:
+def _normalize_client_selector(selector):
+    if selector is None:
+        return None
+    selector = selector.lower()
+    return selector[:-1] if selector.endswith('.') else selector
+
+
+def _client_matches_selector(client, selector):
+    selector = _normalize_client_selector(selector)
+    if selector is None:
+        return True
+
+    prefix = _normalize_client_selector(client._prefix)
+    if selector == prefix:
+        return True
+
+    browser = client.browser.lower()
+    if selector in ('chrome', 'chromium'):
+        return 'chrome' in browser or 'chromium' in browser
+    if selector == 'firefox':
+        return 'firefox' in browser
+    if selector == 'brave':
+        return 'brave' in browser
+    return selector in browser
+
+
+def create_clients(target_hosts=None, client_selector=None) -> List[SingleMediatorAPI]:
     if target_hosts is None:
         ports = list(get_mediator_ports())
         hosts = ['localhost'] * len(ports)
     else:
         hosts, ports = parse_target_hosts(target_hosts)
 
-    result = [SingleMediatorAPI(prefix, host=host, port=port)
-              for prefix, host, port in zip(ascii_lowercase, hosts, ports)
-              if is_port_accepting_connections(port, host)]
+    clients = [SingleMediatorAPI(prefix, host=host, port=port)
+               for prefix, host, port in zip(ascii_lowercase, hosts, ports)
+               if is_port_accepting_connections(port, host)]
+    result = [client for client in clients
+              if _client_matches_selector(client, client_selector)]
     bruvtab_logger.info('Created clients: %s', result)
     return result
+
+
+def create_clients_from_args(args) -> List[SingleMediatorAPI]:
+    return create_clients(args.target_hosts, getattr(args, 'client_selector', None))
 
 
 def parse_prefix_and_window_id(prefix_window_id):
@@ -200,7 +232,7 @@ def print_table(columns, rows, right_aligned_columns=None):
 
 def move_tabs(args):
     bruvtab_logger.info('Moving tabs')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     api.move_tabs([])
 
 
@@ -210,7 +242,7 @@ def list_tabs(args):
         bruvtab list | sort -k3 | uniq -f2 -D | cut -f1 | bruvtab close
     """
     bruvtab_logger.info('Listing tabs')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     tabs = api.list_tabs([])
     if args.json:
         tabs_json = [
@@ -233,19 +265,19 @@ def close_tabs(args):
         tab_ids = split_tab_ids(read_stdin().strip())
 
     bruvtab_logger.info('Closing tabs: %s', tab_ids)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     tabs = api.close_tabs(tab_ids)
 
 
 def activate_tab(args):
     bruvtab_logger.info('Activating tab: %s', args.tab_id)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     api.activate_tab(args.tab_id, args.focused)
 
 
 def show_active_tabs(args):
     bruvtab_logger.info('Showing active tabs: %s', args)
-    apis = create_clients(args.target_hosts)
+    apis = create_clients_from_args(args)
     active_tabs = []
     for api in apis:
         tabs = api.get_active_tabs(args)
@@ -263,14 +295,20 @@ def show_active_tabs(args):
 
 def screenshot(args):
     bruvtab_logger.info('Getting screenshot: %s', args)
-    apis = create_clients(args.target_hosts)
+    apis = create_clients_from_args(args)
     for api in apis:
-        result = api.get_screenshot(args)
-        # print(result, api)
-        result = loads(result)
+        try:
+            result = loads(api.get_screenshot(args))
+        except Exception as e:
+            print("Cannot get screenshot from API %s: %s" % (api, e), file=sys.stderr)
+            continue
+        if isinstance(result, dict) and result.get('error'):
+            print("Cannot get screenshot from API %s: %s" % (api, result['error']), file=sys.stderr)
+            continue
         result['api'] = api._prefix[:1]
         result = dumps(result)
         print(result)
+
 
 def search_tabs(args):
     for result in query(args.sqlite, args.query):
@@ -284,8 +322,8 @@ def query_tabs(args):
         queryInfo = d['info']
     else:
         queryInfo = {k: v for k, v in d.items()
-                     if v is not None and k not in ['func', 'info', 'target_hosts']}
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+                     if v is not None and k not in ['func', 'info', 'target_hosts', 'client_selector']}
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     for tab in api.query_tabs(queryInfo):
         print(tab)
 
@@ -314,7 +352,7 @@ def new_tab(args):
     bruvtab_logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
                        search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     ids = api.open_urls([url], prefix, window_id)
     stdout_buffer_write(marshal(ids))
 
@@ -331,7 +369,7 @@ def open_urls(args):
         urls = read_stdin_lines()
     bruvtab_logger.info('Opening URLs, prefix "%s", window_id "%s": %s',
                        prefix, window_id, urls)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     ids = api.open_urls(urls, prefix, window_id)
     stdout_buffer_write(marshal(ids))
 
@@ -347,7 +385,7 @@ def navigate_urls(args):
     else:
         updates = [make_update(tabId=args.tab_id, url=args.url)]
     bruvtab_logger.info('Navigating: %s', updates)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     results = api.update_tabs(updates)
     stdout_buffer_write(marshal(results))
 
@@ -365,11 +403,11 @@ def update_tabs(args):
             updates = [d['info']]
         else:
             updates = {k: v for k, v in d.items()
-                       if v is not None and k not in ['func', 'info', 'target_hosts']}
+                       if v is not None and k not in ['func', 'info', 'target_hosts', 'client_selector']}
             if 'tabId' not in updates: raise ValueError('tabId is required')
             updates = [make_update(**updates)]
     bruvtab_logger.info('Updating tabs: %s', updates)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     results = api.update_tabs(updates)
     stdout_buffer_write(marshal(results))
 
@@ -381,7 +419,7 @@ def get_words(args):
     start = time.time()
     bruvtab_logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
                        args.tab_ids, args.match_regex, args.join_with)
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))
     delta = time.time() - start
@@ -412,13 +450,13 @@ def get_text_or_html(getter, args):
 
 def get_text(args):
     bruvtab_logger.info('Get text from tabs')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     return get_text_or_html(api.get_text, args)
 
 
 def get_html(args):
     bruvtab_logger.info('Get html from tabs')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     return get_text_or_html(api.get_html, args)
 
 
@@ -470,14 +508,14 @@ def _print_available_windows(tabs, as_json=False):
 
 def show_windows(args):
     bruvtab_logger.info('Showing windows')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    api = MultipleMediatorsAPI(create_clients_from_args(args))
     tabs = api.list_tabs([])
     _print_available_windows(tabs, args.json)
 
 
 def show_clients(args):
     bruvtab_logger.info('Showing clients')
-    clients = create_clients(args.target_hosts)
+    clients = create_clients_from_args(args)
 
     if args.json:
         clients_json = [
@@ -584,6 +622,7 @@ def no_command(parser, args):
 
 
 def normalize_global_args(args):
+    install_args = 'install' in args
     global_args = []
     remaining_args = []
     index = 0
@@ -605,6 +644,23 @@ def normalize_global_args(args):
             global_args.append(arg)
             index += 1
             continue
+        if arg in ('--client', '--browser') and not install_args:
+            if index + 1 >= len(args):
+                remaining_args.append(arg)
+                index += 1
+                continue
+            global_args.extend(['--client', args[index + 1]])
+            index += 2
+            continue
+        if (arg.startswith('--client=') or arg.startswith('--browser=')) and not install_args:
+            _name, value = arg.split('=', 1)
+            global_args.append('--client=%s' % value)
+            index += 1
+            continue
+        if arg in ('--firefox', '--chrome', '--chromium', '--brave'):
+            global_args.extend(['--client', arg[2:]])
+            index += 1
+            continue
         remaining_args.append(arg)
         index += 1
     return global_args + remaining_args
@@ -622,6 +678,16 @@ def parse_args(args):
 
     parser.add_argument('--target', dest='target_hosts', default=None,
                         help='Target hosts IP:Port')
+    parser.add_argument('--client', '--browser', dest='client_selector', default=None,
+                        help='Target client prefix or browser name')
+    parser.add_argument('--firefox', dest='client_selector', action='store_const', const='firefox',
+                        help='Target Firefox clients')
+    parser.add_argument('--chrome', dest='client_selector', action='store_const', const='chrome',
+                        help='Target Chrome clients')
+    parser.add_argument('--chromium', dest='client_selector', action='store_const', const='chromium',
+                        help='Target Chromium clients')
+    parser.add_argument('--brave', dest='client_selector', action='store_const', const='brave',
+                        help='Target Brave clients')
     parser.add_argument('--json', action='store_true', default=False,
                         help='Pretty JSON output (colored on terminals)')
 

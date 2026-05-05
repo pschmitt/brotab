@@ -5,6 +5,7 @@ import logging.handlers
 import os
 import re
 import socket
+import sys
 
 from bruvtab.env import http_iface
 from bruvtab.env import load_dotenv
@@ -12,11 +13,12 @@ from bruvtab.inout import get_mediator_ports
 from bruvtab.inout import is_port_accepting_connections
 from bruvtab.mediator import sig
 from bruvtab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
+from bruvtab.mediator.const import DEFAULT_TRANSPORT_TIMEOUT
 from bruvtab.mediator.http_server import MediatorHttpServer
 from bruvtab.mediator.log import disable_click_echo
 from bruvtab.mediator.log import mediator_logger
 from bruvtab.mediator.remote_api import default_remote_api
-from bruvtab.mediator.transport import default_transport
+from bruvtab.mediator.transport import transport_with_timeout
 
 
 # TODO:
@@ -69,8 +71,7 @@ def mediator_main():
 
     load_dotenv()
     port_range = list(get_mediator_ports())
-    transport = default_transport()
-    # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
+    transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
     host = http_iface()

@@ -69,7 +69,8 @@ class MockedMediator:
         self.thread = self.server.run.in_thread()
         self.transport.received_extend(['mocked'])
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
-        assert self.api.browser == 'mocked'
+        expected_browser = getattr(remote_api, 'browser', 'mocked')
+        assert self.api.browser == expected_browser
         self.transport.reset()
 
     def join(self):
@@ -87,6 +88,8 @@ class DummyBrowserRemoteAPI:
     """
     Dummy version of browser API for integration smoke tests.
     """
+    def __init__(self, browser='mocked'):
+        self.browser = browser
 
     def list_tabs(self):
         return ['1.1\ttitle\turl']
@@ -121,8 +124,11 @@ class DummyBrowserRemoteAPI:
     def get_html(self, delimiter_regex, replace_with):
         return ['1.1\ttitle\turl\t<body>some body</body>']
 
+    def get_screenshot(self):
+        return {'tab': 1, 'window': 1, 'data': 'data:image/png;base64,'}
+
     def get_browser(self):
-        return 'mocked'
+        return self.browser
 
 
 def run_mocked_mediators(count, default_port_offset, delay):
@@ -200,6 +206,24 @@ class TestCreateClients(WithMediator):
         assert 2 == len(clients)
         assert self.mediator.port == clients[0]._port
         assert self.mediator.port == clients[1]._port
+
+    def test_custom_target_hosts_can_be_filtered_by_prefix(self):
+        clients = create_clients(
+            '127.0.0.1:%d,localhost:%d' % (self.mediator.port, self.mediator.port),
+            'b',
+        )
+        assert 1 == len(clients)
+        assert clients[0]._prefix == 'b.'
+
+    def test_custom_target_hosts_can_be_filtered_by_browser(self):
+        other = MockedMediator('b', remote_api=DummyBrowserRemoteAPI('chrome/chromium'))
+        self.addCleanup(other.join)
+        clients = create_clients(
+            '127.0.0.1:%d,localhost:%d' % (self.mediator.port, other.port),
+            'chromium',
+        )
+        assert 1 == len(clients)
+        assert clients[0]._prefix == 'b.'
 
 
 class TestActivate(WithMediator):
@@ -372,6 +396,21 @@ class TestOpen(WithMediator):
         ]
         assert output == [b'a.1.1\n']
 
+    def test_one_url_with_global_client_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1'],
+        ])
+
+        output = []
+        with patch('bruvtab.main.stdout_buffer_write', output.append):
+            self._run_commands(['open', '--browser', 'a', 'url1'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'open_urls', 'urls': ['url1']},
+        ]
+        assert output == [b'a.1.1\n']
+
     def test_three_urls_ok(self):
         self.mediator.transport.received_extend([
             'mocked',
@@ -434,6 +473,17 @@ class TestJsonOutput(TestCase):
 
         assert args.target_hosts == '127.0.0.1:4625'
 
+    def test_parse_args_accepts_browser_after_subcommand(self):
+        args = parse_args(['tabs', '--browser', 'a'])
+
+        assert args.client_selector == 'a'
+
+    def test_parse_args_accepts_firefox_after_subcommand(self):
+        args = parse_args(['open', '--firefox', 'url1'])
+
+        assert args.client_selector == 'firefox'
+        assert args.open_args == ['url1']
+
 
 class TestRichTableOutput(WithMediator):
     def _render_output(self, commands):
@@ -471,5 +521,6 @@ class TestRichTableOutput(WithMediator):
 
         assert 'Clients\n' not in output
         assert output.splitlines()[0].startswith('+')
-        assert '| Prefix | Host      | Port |     PID | Browser |' in output
+        assert '| Prefix | Host      | Port |' in output
+        assert '| Browser |' in output
         assert '| a.     | localhost |' in output
