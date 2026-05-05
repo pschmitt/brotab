@@ -16,3 +16,4 @@ tags
 npm-debug.log
 tmp
 *.pem
+result
