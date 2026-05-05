@@ -798,6 +798,25 @@ function restoreActiveTab(previousTab) {
   browserTabs.activate(previousTab.id, true);
 }
 
+function waitForTabActivation(windowId, tabId, onSuccess, onError, attemptsLeft = 10) {
+  browserTabs.query({active: true, windowId: windowId}, (activeTabs) => {
+    if (activeTabs.length && activeTabs[0].id === tabId) {
+      setTimeout(onSuccess, 150);
+      return;
+    }
+
+    if (attemptsLeft <= 0) {
+      onError(`Timed out waiting for tab ${tabId} in window ${windowId} to become active`);
+      return;
+    }
+
+    setTimeout(
+      () => waitForTabActivation(windowId, tabId, onSuccess, onError, attemptsLeft - 1),
+      100
+    );
+  });
+}
+
 function getScreenshot(tab_id) {
   if (tab_id == null) {
     getActiveScreenshot();
@@ -811,7 +830,7 @@ function getScreenshot(tab_id) {
       return;
     }
 
-    browserTabs.query({active: true, windowFocused: true}, (activeTabs) => {
+    browserTabs.query({active: true, lastFocusedWindow: true}, (activeTabs) => {
       const previousTab = activeTabs.length ? activeTabs[0] : null;
 
       browserTabs.focusWindow(
@@ -819,7 +838,9 @@ function getScreenshot(tab_id) {
         () => browserTabs.update(
           targetTab.id,
           {active: true},
-          () => setTimeout(
+          () => waitForTabActivation(
+            targetTab.windowId,
+            targetTab.id,
             () => browserTabs.captureVisible(
               targetTab.windowId,
               targetTab.id,
@@ -836,7 +857,12 @@ function getScreenshot(tab_id) {
                 port.postMessage({error: `${error}`});
               }
             ),
-            200
+            (error) => {
+              if (previousTab && previousTab.id !== targetTab.id) {
+                restoreActiveTab(previousTab);
+              }
+              port.postMessage({error: `${error}`});
+            }
           ),
           (error) => port.postMessage({error: `${error}`})
         ),
