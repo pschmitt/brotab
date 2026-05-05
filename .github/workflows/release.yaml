@@ -168,3 +168,14 @@ jobs:
             dist/browser/*.crx
             dist/browser/*.zip
             dist/browser/*.xpi
+
+      - name: Publish Chrome extension to Chrome Web Store
+        uses: puzzlers-labs/chrome-webstore-publish@v1
+        with:
+          mode: publish
+          extension_id: edpgjheobdplebiikjgjgpmonakingef
+          zip_file_path: ./dist/browser/bruvtab-chrome-${{ env.VERSION }}.zip
+          client_id: ${{ secrets.CHROME_WEBSTORE_CLIENT_ID }}
+          client_secret: ${{ secrets.CHROME_WEBSTORE_CLIENT_SECRET }}
+          refresh_token: ${{ secrets.CHROME_WEBSTORE_REFRESH_TOKEN }}
+          publish_target: public

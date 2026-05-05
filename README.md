@@ -111,8 +111,8 @@ bruvtab install
 
 3. Install Browser extension:
 
-* **Firefox**: Prefer the signed XPI attached to each GitHub release, or use the flake's self-hosted XPI output (`firefoxAddon`, alias `firefoxXpi`). The release workflow signs Firefox builds for self-distribution instead of publishing them to the AMO store.
-* **Chrome/Brave/Chromium**: Pending Chrome Web Store update. For now, load unpacked extension from `bruvtab/extension/chrome/` in developer mode.
+* **Firefox**: Prefer the signed XPI attached to each GitHub release, or use the flake's self-hosted XPI output (`firefoxAddon`, alias `firefoxXpi`). The release workflow publishes listed AMO builds and signs separate self-distributed XPIs for GitHub releases.
+* **Chrome/Brave/Chromium**: Prefer the Chrome Web Store build once published. The release workflow also uploads Chrome CRX/ZIP artifacts to GitHub releases.
 
 ### NixOS / Home Manager
 
