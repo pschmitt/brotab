@@ -113,11 +113,13 @@ bruvtab install
 3. Install Browser extension:
 
 * **Firefox**: Prefer the signed XPI attached to each GitHub release, or use the flake's self-hosted XPI output (`firefoxAddon`, alias `firefoxXpi`). The release workflow publishes listed AMO builds and signs separate self-distributed XPIs for GitHub releases.
-* **Chrome/Brave/Chromium**: Prefer the Chrome Web Store build once published. The release workflow also uploads Chrome CRX/ZIP artifacts to GitHub releases.
+* **Chrome/Brave/Chromium**: Prefer the Chrome Web Store build once published. The release workflow also uploads Chrome CRX/ZIP artifacts and a self-hosted update manifest to GitHub releases.
 
 ### NixOS / Home Manager
 
-Add `bruvtab` as an input to your flake and use the following configuration:
+Add `bruvtab` as an input to your flake. For Chromium/Home Manager, you can either pin the packaged CRX from the flake output or point Chrome at the published update manifest URL.
+
+Using the packaged CRX directly:
 
 ```nix
 { config, pkgs, inputs, ... }:
@@ -144,6 +146,19 @@ in
     ];
     nativeMessagingHosts = [ bruvtabPkg ];
   };
+}
+```
+
+Using the published update manifest URL for auto-updates from GitHub releases:
+
+```nix
+{
+  programs.chromium.extensions = [
+    {
+      id = "edpgjheobdplebiikjgjgpmonakingef";
+      updateUrl = "https://github.com/pschmitt/bruvtab/releases/latest/download/bruvtab-chrome-updates.xml";
+    }
+  ];
 }
 ```
 

@@ -613,9 +613,11 @@ function getScreenshot(tab_id) {
     browserTabs.query({active: true, windowFocused: true}, (activeTabs) => {
       const previousTab = activeTabs.length ? activeTabs[0] : null;
 
-      browserTabs.update(targetTab.id, {active: true},
-        () => browserTabs.focusWindow(
-          targetTab.windowId,
+      browserTabs.focusWindow(
+        targetTab.windowId,
+        () => browserTabs.update(
+          targetTab.id,
+          {active: true},
           () => setTimeout(
             () => browserTabs.captureVisible(
               targetTab.windowId,
@@ -633,7 +635,7 @@ function getScreenshot(tab_id) {
                 port.postMessage({error: `${error}`});
               }
             ),
-            75
+            200
           ),
           (error) => port.postMessage({error: `${error}`})
         ),

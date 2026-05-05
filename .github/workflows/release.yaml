@@ -6,6 +6,7 @@ on:
       - "*"
 
 env:
+  CHROME_EXTENSION_ID: edpgjheobdplebiikjgjgpmonakingef
   VERSION: ${{ github.ref_name }}
 
 jobs:
@@ -114,14 +115,27 @@ jobs:
           nix develop --command \
             ./scripts/package-chrome-crx.sh \
               --output-dir "$PWD/dist/browser" \
+              --update-url "https://github.com/${{ github.repository }}/releases/latest/download/bruvtab-chrome-updates.xml" \
               --version "${VERSION}" \
               "${key_args[@]}"
+
+      - name: Generate Chrome update manifest
+        shell: bash
+        run: |
+          cp "dist/browser/bruvtab-chrome-${VERSION}.crx" "dist/browser/bruvtab-chrome.crx"
+          ./scripts/generate-chrome-update-manifest.sh \
+            --extension-id "${CHROME_EXTENSION_ID}" \
+            --version "${VERSION}" \
+            --codebase-url "https://github.com/${{ github.repository }}/releases/latest/download/bruvtab-chrome.crx" \
+            --output "dist/browser/bruvtab-chrome-updates.xml"
 
       - name: Verify Chrome release assets
         shell: bash
         run: |
           test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
+          test -f "dist/browser/bruvtab-chrome.crx"
           test -f "dist/browser/bruvtab-chrome-${VERSION}.zip"
+          test -f "dist/browser/bruvtab-chrome-updates.xml"
           test -f "dist/browser/bruvtab-firefox-source-${VERSION}.zip"
 
       - name: Upload Chrome browser artifacts
@@ -129,6 +143,8 @@ jobs:
         with:
           name: browser-artifacts-chrome-${{ env.VERSION }}
           path: |
+            dist/browser/bruvtab-chrome-updates.xml
+            dist/browser/bruvtab-chrome.crx
             dist/browser/bruvtab-chrome-${{ env.VERSION }}.crx
             dist/browser/bruvtab-chrome-${{ env.VERSION }}.zip
             dist/browser/bruvtab-firefox-source-${{ env.VERSION }}.zip
@@ -257,6 +273,8 @@ jobs:
         run: |
           test -f "dist/bruvtab-${VERSION}.tar.gz"
           test -f "dist/bruvtab-${VERSION}-py3-none-any.whl"
+          test -f "dist/browser/bruvtab-chrome-updates.xml"
+          test -f "dist/browser/bruvtab-chrome.crx"
           test -f "dist/browser/bruvtab-chrome-${VERSION}.crx"
           test -f "dist/browser/bruvtab-chrome-${VERSION}.zip"
           test -f "dist/browser/bruvtab-firefox-${VERSION}.xpi"
@@ -270,6 +288,7 @@ jobs:
             dist/*.tar.gz
             dist/*.whl
             dist/browser/*.crx
+            dist/browser/*.xml
             dist/browser/*.zip
             dist/browser/*.xpi
 

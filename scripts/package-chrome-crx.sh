@@ -7,11 +7,12 @@ Usage: $(basename "$0") [OPTIONS]
 Package the Chrome extension as a CRX.
 
 Options:
-  --crx3-bin PATH     crx3 binary to use for packaging
-  --chrome-bin PATH   Deprecated alias accepted for compatibility
-  --key-file PATH     PEM private key for stable CRX packaging
-  --no-pem-output     Do not write a PEM file into the output directory
+ --crx3-bin PATH     crx3 binary to use for packaging
+ --chrome-bin PATH   Deprecated alias accepted for compatibility
+ --key-file PATH     PEM private key for stable CRX packaging
+ --no-pem-output     Do not write a PEM file into the output directory
   --output-dir PATH   Output directory for the CRX artifact
+  --update-url URL    Set update_url in the packaged manifest
   --version VALUE     Version string used in filenames
   -h, --help          Show this help
 EOF
@@ -50,6 +51,23 @@ path.write_text(json.dumps(data, indent=2) + "\n")
 PY
 }
 
+set_manifest_update_url() {
+  local manifest_path="$1"
+  local update_url="$2"
+
+  python3 - <<'PY' "$manifest_path" "$update_url"
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+update_url = sys.argv[2]
+data = json.loads(path.read_text())
+data["update_url"] = update_url
+path.write_text(json.dumps(data, indent=2) + "\n")
+PY
+}
+
 main() {
   local crx3_bin
   local extension_source
@@ -62,6 +80,7 @@ main() {
   local temp_dir
   local temp_extension_dir
   local temp_extension_zip
+  local update_url
   local version
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
@@ -74,6 +93,7 @@ main() {
   key_file=""
   output_dir="${repo_root}/dist/browser"
   pem_output=1
+  update_url=""
   version=""
 
   while [[ -n "${1:-}" ]]
@@ -93,6 +113,10 @@ main() {
         ;;
       --output-dir)
         output_dir="$2"
+        shift 2
+        ;;
+      --update-url)
+        update_url="$2"
         shift 2
         ;;
       --no-pem-output)
@@ -162,6 +186,10 @@ PY
   cp -R "$extension_source" "$temp_extension_dir"
   chmod -R +w "$temp_extension_dir"
   strip_manifest_key "${temp_extension_dir}/manifest.json"
+  if [[ -n "${update_url:-}" ]]
+  then
+    set_manifest_update_url "${temp_extension_dir}/manifest.json" "${update_url}"
+  fi
 
   # Normalize mtimes so the ZIP fed to crx3 is reproducible across environments.
   find "$temp_extension_dir" -exec touch -h -d '1980-01-01 00:00:00Z' {} +
