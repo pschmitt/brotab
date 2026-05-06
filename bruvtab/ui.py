@@ -4,8 +4,8 @@ import sys
 from rich.console import Console
 
 
-stdout_console = Console(highlight=False, soft_wrap=True)
-stderr_console = Console(stderr=True, highlight=False, soft_wrap=True)
+stdout_console = Console(highlight=True, soft_wrap=True)
+stderr_console = Console(stderr=True, highlight=True, soft_wrap=True)
 
 
 def _is_rich_enabled(console: Console) -> bool:

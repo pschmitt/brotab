@@ -378,14 +378,21 @@ def print_json(data):
         print(json.dumps(data, indent=2))
 
 
-def print_table(columns, rows, right_aligned_columns=None):
+def print_table(columns, rows, right_aligned_columns=None, no_wrap=False):
     right_aligned_columns = set() if right_aligned_columns is None else set(right_aligned_columns)
-    table = Table(box=box.ASCII)
-    for column in columns:
+    table = Table(box=None, padding=(0, 1, 0, 0), show_header=True, show_edge=False, show_lines=False)
+    styles = ["cyan", "green", "blue", "magenta", "yellow", "red"]
+    for i, column in enumerate(columns):
         justify = 'right' if column in right_aligned_columns else 'left'
-        table.add_column(column, justify=justify)
+        table.add_column(column.upper(), justify=justify, style=styles[i % len(styles)], no_wrap=no_wrap)
     for row in rows:
-        table.add_row(*[str(value) for value in row])
+        formatted_row = []
+        for i, value in enumerate(row):
+            if columns[i] == 'URL' and str(value).startswith(('http://', 'https://')):
+                formatted_row.append(f"[link={value}]{value}[/link]")
+            else:
+                formatted_row.append(str(value))
+        table.add_row(*formatted_row)
     stdout_console.print(table)
 
 
@@ -413,7 +420,7 @@ def list_tabs(args):
         print_json(tabs_json)
     elif stdout_supports_rich():
         rows = [tab.split('\t', 2) for tab in tabs]
-        print_table(['ID', 'Title', 'URL'], rows)
+        print_table(['ID', 'Title', 'URL'], rows, no_wrap=args.no_wrap)
     else:
         message = "\n".join(tabs) + "\n"
         sys.stdout.buffer.write(message.encode("utf8"))
@@ -448,7 +455,8 @@ def show_active_tabs(args):
     if args.json:
         print_json(active_tabs)
     elif stdout_supports_rich():
-        print_table(['ID', 'Client'], [[tab['id'], tab['client']] for tab in active_tabs])
+        print_table(['ID', 'Client'], [[tab['id'], tab['client']] for tab in active_tabs],
+                    no_wrap=args.no_wrap)
     else:
         for tab in active_tabs:
             print('%s\t%s' % (tab['id'], tab['client']))
@@ -675,7 +683,7 @@ def _get_window_id(tab):
     return '%s.%s' % (client_id, window_id)
 
 
-def _print_available_windows(tabs, as_json=False):
+def _print_available_windows(tabs, as_json=False, no_wrap=False):
     windows = []
     for key, group in groupby(sorted(tabs), _get_window_id):
         group = list(group)
@@ -686,7 +694,8 @@ def _print_available_windows(tabs, as_json=False):
         return
 
     if stdout_supports_rich():
-        print_table(['Window', 'Tabs'], windows, right_aligned_columns={'Tabs'})
+        print_table(['Window', 'Tabs'], windows, right_aligned_columns={'Tabs'},
+                    no_wrap=no_wrap)
         return
 
     for window_id, tab_count in windows:
@@ -697,7 +706,7 @@ def show_windows(args):
     bruvtab_logger.info('Showing windows')
     api = MultipleMediatorsAPI(create_clients_from_args(args))
     tabs = api.list_tabs([])
-    _print_available_windows(tabs, args.json)
+    _print_available_windows(tabs, args.json, args.no_wrap)
 
 
 def show_clients(args):
@@ -726,6 +735,7 @@ def show_clients(args):
                 for client in clients
             ],
             right_aligned_columns={'Port', 'PID'},
+            no_wrap=args.no_wrap,
         )
         return
 
@@ -868,6 +878,8 @@ def add_global_arguments(parser, default=None):
                         default=default, help='Target Brave clients')
     parser.add_argument('--json', action='store_true', default=False if default is None else default,
                         help='Pretty JSON output (colored on terminals)')
+    parser.add_argument('--no-wrap', action='store_true', default=False if default is None else default,
+                        help='Disable wrapping of table columns')
     return parser_client
 
 

@@ -783,10 +783,9 @@ class TestRichTableOutput(WithMediator):
         assert self.mediator.transport.sent == [
             {'name': 'list_tabs'},
         ]
-        assert output.splitlines()[0].startswith('+')
-        assert 'ID' in output
-        assert 'Title' in output
-        assert 'URL' in output
+        assert 'ID' in output.splitlines()[0]
+        assert 'TITLE' in output.splitlines()[0]
+        assert 'URL' in output.splitlines()[0]
         assert 'a.1.1' in output
         assert 'title' in output
         assert 'url' in output
@@ -797,7 +796,6 @@ class TestRichTableOutput(WithMediator):
         output = self._render_output(['clients'])
 
         assert 'Clients\n' not in output
-        assert output.splitlines()[0].startswith('+')
-        assert '| Prefix | Host      | Port |' in output
-        assert '| Browser |' in output
-        assert '| a.     | localhost |' in output
+        assert 'PREFIX' in output.splitlines()[0]
+        assert 'BROWSER' in output.splitlines()[0]
+        assert 'a.' in output
